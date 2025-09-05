@@ -1,0 +1,84 @@
+.card-custom {
+     background-color: #F0F5FF;
+}
+
+.custom-tr,
+.custom-th {
+  border-bottom: 1px solid #333;
+}
+.custom-td,
+.custom-th {
+  border-right: 1px solid #333;
+}
+.custom-th:last-child,
+.custom-td:last-child {
+  border-right: none;
+}
+.custom-tr:last-child {
+  border-bottom: none;
+}
+
+
+/* Add this to your global CSS */
+.docx-preview h1, .docx-preview h2, .docx-preview h3 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.docx-preview p {
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+
+.docx-preview ul, .docx-preview ol {
+  margin-left: 2em;
+  margin-bottom: 1em;
+}
+
+.docx-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+
+.docx-preview table, .docx-preview th, .docx-preview td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+/* Excel preview styles */
+.excel-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  background: white;
+}
+
+.excel-preview th,
+.excel-preview td {
+  border: 1px solid #d1d5db;
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.excel-preview th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  color: #374151;
+}
+
+.excel-preview tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.excel-preview tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* Improve readability for numbers */
+.excel-preview td[align="right"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

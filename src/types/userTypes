@@ -1,0 +1,7 @@
+export type UserRole = "client" | "employee";
+
+export interface User {
+  name: string;
+  fullName: string;
+  role: UserRole;
+}

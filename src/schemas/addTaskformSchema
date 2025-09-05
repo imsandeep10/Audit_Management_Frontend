@@ -1,0 +1,27 @@
+export const formSchema = z.object({
+  taskTitle: z.string().min(2, {
+    message: "Title must be at least 2 characters.",
+  }),
+  description: z.string().min(2, {
+    message: "Description must be at least 2 characters.",
+  }),
+  status: z.string().min(2, {
+    message: "Status must be at least 2 characters.",
+  }),
+  assignedTo: z.string().min(2, {
+    message: "Assigned to must be at least 2 characters.",
+  }),
+  clientId: z.string().min(2, {
+    message: "Client must be selected.",
+  }),
+  dueDate: z.string().min(2, {
+    message: "Due date must be at least 2 characters.",
+  }),
+  subTasks: z
+    .array(
+      z.object({
+        title: z.string().min(1, "Sub task title is required"),
+      })
+    )
+    .min(0),
+});
