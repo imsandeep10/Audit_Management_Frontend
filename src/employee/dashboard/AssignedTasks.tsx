@@ -12,7 +12,6 @@ import type { TaskWithDetails as LocalTaskWithDetails } from "./AmountDialog";
 import TaskCard from "./TaskCard";
 import CompletedTaskCard from "./CompletedTaskCard";
 
-import type { ClientAmount } from "./AmountDialog";
 import { AddNewEmployeeTask } from "./AddTasksByEmployee";
 
 const EmployeeAssignedTasks = () => {
@@ -103,7 +102,7 @@ const EmployeeAssignedTasks = () => {
     setNoteDialogOpen(true);
   };
 
-  const handleSaveAmount = async (amounts: ClientAmount[]) => {
+  const handleSaveAmount = async () => {
     if (selectedTaskForAmount) {
       try {
         // Update task status to completed after saving amounts

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { type TaskWithDetails } from "../../types/task";
 import SubTaskItem from "./SubTaskItem";
 import AmountDialog from "./AmountDialog";
-import type { TaskWithDetails as LocalTaskWithDetails, ClientAmount } from "./AmountDialog";
+import type { TaskWithDetails as LocalTaskWithDetails } from "./AmountDialog";
 
 const TaskCard = ({
   task,
@@ -65,7 +65,7 @@ const TaskCard = ({
     }
   };
 
-  const handleSaveAmount = async (amounts: ClientAmount[]) => {
+  const handleSaveAmount = async () => {
     if (selectedSubTaskForAmount) {
       try {
         
