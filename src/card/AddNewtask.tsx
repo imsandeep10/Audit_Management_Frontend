@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import DatePicker from "../components/date picker/date-picker";
 import {
   Form,
@@ -145,7 +145,7 @@ const createFormSchema = (mode: string) => {
 
   return z.object({
     ...baseFields,
-    clientId: z.string().min(1, { message: "Client selection is required." }), // Added clientId validation
+    clientId: z.string().min(1, { message: "Client selection is required." }),
     assignedTo: z.array(z.string()).min(1, {
       message: "At least one assignee must be selected.",
     }),
@@ -202,7 +202,7 @@ export function AddNewTask({
     description: string;
     status: string;
     dueDate: string;
-    clientId?: string; // Added clientId to FormValues
+    clientId?: string;
     type?: 'monthly' | 'trimester'| "ITR"|'Estimated Return';
     assignedTo?: string[];
     subTasks?: { title: string }[];
@@ -233,7 +233,7 @@ export function AddNewTask({
           description: defaultValues.description,
           status: defaultValues.status,
           dueDate: defaultValues.dueDate,
-          clientId: defaultValues.clientId, // Include clientId in defaults
+          clientId: defaultValues.clientId,
           assignedTo: normalizeAssignedTo(defaultValues.assignedTo),
           subTasks: defaultValues.subTasks ?? [{ title: "" }],
         }
@@ -241,7 +241,7 @@ export function AddNewTask({
           taskTitle: "",
           description: "",
           status: "",
-          clientId: "", // Initialize clientId
+          clientId: "",
           assignedTo: [],
           dueDate: "",
           subTasks: [{ title: "" }],
@@ -264,15 +264,44 @@ export function AddNewTask({
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const { mutate: createMaskebari, isPending: isCreatingMaskebari } = useCreateMaskebari();
   const { data: clients } = useGetAllClients();
+  console.log(clients)
   const { data: employeesResponse } = useGetAllEmployees();
   const employees = employeesResponse?.data?.employees || [];
 
   const periodType = form.watch('type');
   const clientList = clients?.data?.clients || [];
 
-  const filteredClients = mode === 'maskebari' && periodType
-    ? clientList.filter((c: any) => c.fillingperiod === periodType)
-    : clientList;
+  // Fixed filtering logic with lowercase conversion for API values
+  const filteredClients = useMemo(() => {
+    if (mode !== 'maskebari' || !periodType) {
+      return clientList;
+    }
+
+    // For ITR and Estimated Return, show all clients
+    if (periodType === "ITR" || periodType === "Estimated Return") {
+      return clientList;
+    }
+
+    // For monthly/trimester types, filter based on client's fillingperiod
+    return clientList.filter((client: any) => {
+      if (!client.fillingperiod) return false;
+      
+      const clientPeriod = client.fillingperiod.toLowerCase();
+      const selectedPeriod = periodType.toLowerCase();
+      
+      // Handle monthly variations
+      if (selectedPeriod === 'monthly') {
+        return clientPeriod === 'monthly';
+      }
+      
+      // Handle trimester variations (including trismester typo)
+      if (selectedPeriod === 'trimester') {
+        return clientPeriod === 'trimester' || clientPeriod === 'trismester';
+      }
+      
+      return false;
+    });
+  }, [mode, periodType, clientList]);
 
   const isPending = isCreating || isUpdating || isCreatingMaskebari;
 
@@ -283,7 +312,7 @@ export function AddNewTask({
         description: defaultValues.description,
         status: defaultValues.status,
         dueDate: defaultValues.dueDate,
-        clientId: defaultValues.clientId, // Include clientId in reset
+        clientId: defaultValues.clientId,
         assignedTo: normalizeAssignedTo(defaultValues.assignedTo),
         subTasks: defaultValues.subTasks ?? [{ title: "" }],
       };
@@ -326,13 +355,12 @@ export function AddNewTask({
       return;
     }
 
-    // Include clientId in the transformed data
     const transformedData = {
       taskTitle: data.taskTitle,
       status: data.status,
       dueDate: data.dueDate,
       description: data.description,
-      clientId: data.clientId!, // Include clientId here
+      clientId: data.clientId!,
       assignedTo: data.assignedTo!,
       subTasks: (data.subTasks || [])
         .filter((task) => task.title.trim() !== "")
@@ -341,7 +369,6 @@ export function AddNewTask({
           status: "todo" as const,
         })),
     };
-
 
     if (mode === "edit" && taskId) {
       updateTask(
@@ -527,8 +554,8 @@ export function AddNewTask({
                         <SelectValue placeholder="Select period" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="trimester">Trimester</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                        <SelectItem value="Trimester">Trimester</SelectItem>
                         <SelectItem value="ITR">ITR</SelectItem>
                         <SelectItem value="Estimated Return">Estimated Return</SelectItem>
                       </SelectContent>
@@ -554,6 +581,9 @@ export function AddNewTask({
                         {index + 1}. {client.user?.fullName || 'N/A'}
                         {client.companyName && (
                           <span className="text-gray-500 ml-2">({client.companyName})</span>
+                        )}
+                        {client.capital && (
+                          <span className="text-blue-500 ml-2">Capital: {client.capital}</span>
                         )}
                       </p>
                     ))}

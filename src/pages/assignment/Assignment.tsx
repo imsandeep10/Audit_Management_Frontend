@@ -302,10 +302,10 @@ const Assignment: React.FC = () => {
                     Create a new Bulk Task with simplified fields
                   </DialogDescription>
                 </DialogHeader>
-                <AddNewTask
-                  onClose={handleCloseMaskebarDialog}
-                  mode="maskebari"
-                />
+             <AddNewTask
+  onClose={handleCloseMaskebarDialog}
+  mode="maskebari"
+/>
               </DialogContent>
             </Dialog>
           </div>
