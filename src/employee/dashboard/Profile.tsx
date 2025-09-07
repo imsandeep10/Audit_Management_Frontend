@@ -96,7 +96,7 @@ export function EmployeeProfile() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  {user?.DOB?.slice(0, 10)}
+                  {user?.DOB?.split("T")[0]}
                 </p>
               </div>
               {hasEmployeeData && user?.employee?.panNumber && (

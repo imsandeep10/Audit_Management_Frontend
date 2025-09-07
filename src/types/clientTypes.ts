@@ -185,28 +185,76 @@ export interface DocumentsResponse {
   documents: Document[];
   bills: Bill[];
   billTypes?: BillType[];
-  pagination: {
+  
+  // Updated pagination structure to match API response
+  documentsPagination: {
     currentPage: number;
     totalPages: number;
-    totalDocuments: number;
+    totalCount: number;
     hasNextPage: boolean;
     hasPrevPage: boolean;
     limit: number;
   };
+  
+  billsPagination: {
+    currentPage: number;
+    totalPages: number;
+    totalBills: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+    limit: number;
+    startIndex: number;
+    endIndex: number;
+  };
+  
+  // Enhanced statistics from the new API
+  statistics: {
+    fiscal_year: string;
+    total_documents: number;
+    total_bills: number;
+    total_sales_bills: number;
+    total_purchase_bills: number;
+    total_amount: number;
+    total_sales_amount: number;
+    total_purchase_amount: number;
+    average_bill_amount: number;
+    current_month_stats: any;
+    document_type_breakdown: any[];
+    bill_type_breakdown: any;
+    search_applied: boolean;
+    filters_applied: any;
+  };
+  
   client: {
     id: string;
-    name: string;
-    email: string;
+    companyName: string;
+    clientNature: string;
   };
+  
   documentTypeStats: DocumentTypeStat[];
   billAmountStats?: BillAmountStats;
-  customerTotals?: CustomerTotal[];
-  filters: {
-    documentType: string;
+  customerAnalytics?: CustomerTotal[];
+  monthlyBreakdown?: any[];
+  
+  appliedFilters: {
+    fiscalYear: string;
+    nepaliMonth: string;
     search: string;
-    sortBy: string;
-    sortOrder: string;
+    documentType?: string;
+    billType?: string;
+    amountRange?: any;
+    dateRange?: any;
   };
+  
+  insights?: any[];
+  
+  downloadOptions: {
+    documentsZip: string;
+    billsExcel: string;
+    comprehensiveReport: string;
+  };
+  
+  executionTime: string;
 }
 
 export interface BillDocument {

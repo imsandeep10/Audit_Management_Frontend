@@ -211,8 +211,8 @@ export const createClientColumns = (
                       navigate(`/upload-client-documents/${client._id}`, {
                         state: {
                           clientId: client._id,
-                          clientName:
-                            client.user?.fullName || client.companyName,
+                          clientName: client.user?.fullName,
+                          companyName: client.companyName,
                         },
                       });
                     }}
@@ -240,8 +240,8 @@ export const createClientColumns = (
                       navigate(`/clients/${client._id}/upload-client-bills`, {
                         state: {
                           clientId: client._id,
-                          clientName:
-                            client.user?.fullName || client.companyName,
+                          clientName: client.user?.fullName,
+                          companyName: client.companyName,
                         },
                       });
                     }}

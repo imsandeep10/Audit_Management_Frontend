@@ -159,20 +159,27 @@ export interface UsersListResponse {
 // Document Types
 export interface Document {
     id: string;
+    _id?: string;
     filename: string;
     originalName: string;
-    url: string;
+    url?: string;
+    documentURL?: string;
     documentType: string;
-    size: number;
+    size?: number;
+    fileSize?: number;
     mimetype: string;
     description?: string;
     uploadDate: string;
-    uploadDateFormatted: string;
+    uploadDateFormatted?: string;
+    fiscalYear?: string;
+    status?: string;
     uploadedBy: {
-        id: string;
-        name: string;
-        email: string;
-        role: string;
+        id?: string;
+        _id?: string;
+        name?: string;
+        fullName?: string;
+        email?: string;
+        role?: string;
     } | null;
 }
 

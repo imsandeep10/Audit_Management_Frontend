@@ -125,7 +125,7 @@ console.log(data)
                 <p>
                   <Cake className="w-4 h-4" />
                 </p>
-                <p className="text-xl ">DOB: {data.user.DOB ? data.user.DOB.split('T')[0] : ''}</p>
+                <p className="text-xl ">DOB: {data.user.DOB.split("T")[0]}</p>
               </div>
             </div>
           </CardContent>

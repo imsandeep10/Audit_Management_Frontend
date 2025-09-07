@@ -28,8 +28,6 @@ export const DEFAULT_SALES_VALUES = {
   customerPan: "",
   files: [],
   documentIds: [],
-  amount: 0,
-  phoneNumber: 0,
   registrationType: "pan" as RegistrationType,
 };
 
@@ -41,8 +39,6 @@ export const DEFAULT_PURCHASE_VALUES = {
   customerPan: "",
   files: [],
   documentIds: [],
-  amount: 0,
-  phoneNumber: 0,
   registrationType: "pan" as RegistrationType,
 };
 

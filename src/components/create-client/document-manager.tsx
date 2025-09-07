@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useClientDocuments, useDeleteDocument } from '../../hooks/client-document';
+import { useClientDocuments, useDeleteDocument, useDownloadDocumentsZip, useDownloadBillsExcel } from '../../hooks/client-document';
 import { useDeleteBill } from '../../api/useBills';
 import { useAuth } from '../../hooks/useAuth';
+import type { Document as ApiDocument } from '../../types/api';
 import {
   Table,
   TableBody,
@@ -36,14 +37,18 @@ import {
   Search,
   Trash2,
   X,
+  FileArchive,
+  FileSpreadsheet,
+  Calendar,
 } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
-import { formatBytes, formatDate } from '../../utils/date-format';
+import { formatBytes } from '../../utils/date-format';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { toast } from "sonner"
 import { DocumentPreview } from '../documentUpload/documentPreview';
-import NepaliDate from 'nepali-date-converter';
+import { getCurrentNepalieFiscalYear, generateFiscalYearOptions, getAllNepaliMonths } from '../../utils/nepaliDateUtils';
+import NepaliDate from 'nepali-datetime';
 
 
 interface DocumentManagerProps {
@@ -53,35 +58,24 @@ interface DocumentManagerProps {
 
 export interface documentPreviewProps {
   id: string;
+  _id?: string;
   originalName: string;
   url: string;
+  documentURL?: string;
   documentType: string;
   size: number;
+  fileSize?: number;
 }
 
 
-type ViewType = 'documents' | 'bills' ;
+type ViewType = 'documents' | 'bills';
 
-// Define our document types explicitly
-const DOCUMENT_TYPES = ['registration', 'tax_clearance', 'audit_report', 'pan', 'vat', 'other'] as const;
+// Define our document types explicitly (removed PAN/VAT as they're specific to bills)
+const DOCUMENT_TYPES = ['registration', 'tax_clearance', 'audit_report', 'other'] as const;
 type DocumentType = typeof DOCUMENT_TYPES[number];
 
-// Define Nepali months
-const NEPALI_MONTHS = [
-  { value: 'all', label: 'All Months' },
-  { value: '1', label: 'Baisakh (बैशाख)' },
-  { value: '2', label: 'Jestha (जेष्ठ)' },
-  { value: '3', label: 'Ashadh (आषाढ)' },
-  { value: '4', label: 'Shrawan (श्रावण)' },
-  { value: '5', label: 'Bhadra (भाद्र)' },
-  { value: '6', label: 'Ashwin (आश्विन)' },
-  { value: '7', label: 'Kartik (कार्तिक)' },
-  { value: '8', label: 'Mangsir (मंसिर)' },
-  { value: '9', label: 'Poush (पौष)' },
-  { value: '10', label: 'Magh (माघ)' },
-  { value: '11', label: 'Falgun (फाल्गुन)' },
-  { value: '12', label: 'Chaitra (चैत्र)' }
-] as const;
+// Define Nepali months using our utility
+const NEPALI_MONTHS = getAllNepaliMonths();
 
 // Helper function to get current Nepali month
 const getCurrentNepaliMonth = () => {
@@ -96,15 +90,20 @@ const getCurrentNepaliMonth = () => {
 
 export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
   const { user } = useAuth();
-  const [currentView, setCurrentView] = useState<ViewType>('documents');
+  const [currentView, setCurrentView] = useState<ViewType>('bills'); // Default to bills view
   const [searchTerm, setSearchTerm] = useState('');
   const [documentTypeFilter, setDocumentTypeFilter] = useState<DocumentType | 'all'>('all');
   const [billDocumentTypeFilter, setBillDocumentTypeFilter] = useState<'all' | 'pan' | 'vat'>('all');
   const [nepaliMonthFilter, setNepaliMonthFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState('uploadDate');
+  const [fiscalYearFilter, setFiscalYearFilter] = useState<string>(getCurrentNepalieFiscalYear()); // Default to current fiscal year
+  const [sortBy, setSortBy] = useState('billDate'); // Default to bill date for better fiscal year experience
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(1);
-  const limit = 10;
+  const [salesPage, setSalesPage] = useState(1);
+  const [purchasePage, setPurchasePage] = useState(1);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const limit = 10; // Changed to 10 for proper document pagination
+  const billsPerPage = 10; // 10 bills per page for each type
   const location = useLocation();
   const { userName, clientName, clientId: stateClientId, companyName } = location.state || {};
   const navigate = useNavigate();
@@ -119,8 +118,14 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
 
   const [previewDocument, setPreviewDocument] = useState<documentPreviewProps | null>(null);
 
+  // Generate fiscal year options
+  const fiscalYearOptions = generateFiscalYearOptions(5, 2);
 
-  const { data, isLoading, isError, error } = useClientDocuments(clientId, {
+  // Initialize download hooks
+  const downloadDocumentsZip = useDownloadDocumentsZip();
+  const downloadBillsExcel = useDownloadBillsExcel();
+
+  const { data, isLoading, isError, error } = useClientDocuments(resolvedClientId, {
     page,
     limit,
     documentType: documentTypeFilter !== 'all' ? documentTypeFilter : undefined,
@@ -128,9 +133,15 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
     sortBy,
     sortOrder,
     nepaliMonth: nepaliMonthFilter !== 'all' ? nepaliMonthFilter : undefined,
+    fiscalYear: fiscalYearFilter, // Include fiscal year in the query
+    billDocumentType: billDocumentTypeFilter !== 'all' ? billDocumentTypeFilter : undefined,
+    viewType: currentView === 'bills' ? 'bills' : 'documents',
+    salesPage,
+    purchasePage,
+    billsPerPage
   });
 
-  const deleteDocumentMutation = useDeleteDocument(clientId);
+  const deleteDocumentMutation = useDeleteDocument(resolvedClientId);
   const deleteBillMutation = useDeleteBill();
 
   const handleDelete = async (documentId: string, documentName: string) => {
@@ -167,14 +178,15 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
 
   const handleBillPreview = (bill: any) => {
     // If bill has documents, preview the first document
-    if (bill.documents && bill.documents.length > 0) {
-      const firstDocument = bill.documents[0];
+    const documents = bill.documents || bill.documentIds || [];
+    if (documents && documents.length > 0) {
+      const firstDocument = documents[0];
       setPreviewDocument({
-        id: firstDocument.id,
+        id: firstDocument._id || firstDocument.id,
         originalName: firstDocument.originalName,
-        url: firstDocument.url,
+        url: firstDocument.documentURL || firstDocument.url,
         documentType: firstDocument.documentType,
-        size: firstDocument.size || 0,
+        size: firstDocument.fileSize || firstDocument.size || 0,
       });
     } else {
       toast.error('No documents available for this bill');
@@ -184,6 +196,43 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
+    setSalesPage(1);
+    setPurchasePage(1);
+  };
+
+  // Download functionality for documents (ZIP)
+  const handleDownloadDocuments = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadDocumentsZip.mutateAsync({
+        clientId: resolvedClientId,
+        fiscalYear: fiscalYearFilter,
+        documentType: documentTypeFilter !== 'all' ? documentTypeFilter : undefined,
+        search: searchTerm || undefined
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Download functionality for bills (Excel)
+  const handleDownloadBills = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadBillsExcel.mutateAsync({
+        clientId: resolvedClientId,
+        fiscalYear: fiscalYearFilter,
+        nepaliMonth: nepaliMonthFilter !== 'all' ? nepaliMonthFilter : undefined,
+        billDocumentType: billDocumentTypeFilter !== 'all' ? billDocumentTypeFilter : undefined,
+        search: searchTerm || undefined
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const clearFilters = () => {
@@ -191,9 +240,12 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
     setDocumentTypeFilter('all');
     setBillDocumentTypeFilter('all');
     setNepaliMonthFilter('all');
-    setSortBy('uploadDate');
+    setFiscalYearFilter(getCurrentNepalieFiscalYear()); // Reset to current fiscal year
+    setSortBy('billDate');
     setSortOrder('desc');
     setPage(1);
+    setSalesPage(1);
+    setPurchasePage(1);
   };
 
   const getYearOptions = () => {
@@ -213,7 +265,22 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
       ? NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'
       : '';
 
-    if (!data?.bills?.length) {
+    // Use separate sales and purchase bills if available, otherwise filter from all bills
+    const salesBills = (data as any)?.salesBills || data?.bills?.filter(bill => bill.billType === 'sales') || [];
+    const purchaseBills = (data as any)?.purchaseBills || data?.bills?.filter(bill => bill.billType === 'purchase') || [];
+
+    // Apply document type filter if needed
+    const filteredSalesBills = salesBills.filter((bill: any) => {
+      if (billDocumentTypeFilter === 'all') return true;
+      return bill.documentType === billDocumentTypeFilter;
+    });
+
+    const filteredPurchaseBills = purchaseBills.filter((bill: any) => {
+      if (billDocumentTypeFilter === 'all') return true;
+      return bill.documentType === billDocumentTypeFilter;
+    });
+
+    if (filteredSalesBills.length === 0 && filteredPurchaseBills.length === 0) {
       return (
         <div className="text-center py-8 text-muted-foreground">
           {nepaliMonthFilter !== 'all'
@@ -224,39 +291,43 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
       );
     }
 
-    // Filter bills based on document type
-    const filteredBills = data.bills.filter(bill => {
-      if (billDocumentTypeFilter === 'all') return true;
-      return bill.documentType === billDocumentTypeFilter;
-    });
-
-    if (filteredBills.length === 0) {
-      return (
-        <div className="text-center py-8 text-muted-foreground">
-          {nepaliMonthFilter !== 'all'
-            ? `No ${billDocumentTypeFilter !== 'all' ? billDocumentTypeFilter.toUpperCase() + ' ' : ''}bills found in ${selectedMonthName}.`
-            : `No ${billDocumentTypeFilter !== 'all' ? billDocumentTypeFilter.toUpperCase() + ' ' : ''}bills found.`
-          }
-        </div>
-      );
-    }
-
-    // Separate sales and purchase bills
-    const salesBills = filteredBills.filter(bill => bill.billType === 'sales');
-    const purchaseBills = filteredBills.filter(bill => bill.billType === 'purchase');
-
     return (
       <div className="space-y-6">
-        {/* Amount Section */}
         {/* Sales Bills Section */}
-        {salesBills.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                Sales Bills
-              </Badge>
-              <span>({salesBills.length})</span>
-            </h3>
+        {filteredSalesBills.length > 0 && (
+          <div className="overflow-x-auto mb-12">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  Sales Bills
+                </Badge>
+                <span>({(data as any)?.salesPagination?.totalCount || filteredSalesBills.length})</span>
+              </h3>
+              {/* Sales Pagination Controls */}
+              {(data as any)?.salesPagination && (data as any).salesPagination.totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSalesPage(Math.max(1, salesPage - 1))}
+                    disabled={!(data as any).salesPagination.hasPrevPage}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {(data as any).salesPagination.currentPage} of {(data as any).salesPagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSalesPage(salesPage + 1)}
+                    disabled={!(data as any).salesPagination.hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -272,13 +343,13 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salesBills.map((bill) => (
+                {filteredSalesBills.map((bill: any) => (
                   <TableRow key={bill.id}>
                     <TableCell className="font-medium">{bill.billNo}</TableCell>
                     <TableCell>{bill.customerName}</TableCell>
                     <TableCell>{bill.customerPan || 'N/A'}</TableCell>
                     <TableCell>
-                      {bill.billDate ? new Date(bill.billDate).toLocaleDateString() : 'N/A'}
+                      {bill.billDate ? new Date(bill.billDate).toISOString().split('T')[0] : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="uppercase">
@@ -294,12 +365,12 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                       {bill.amount ? `NRs ${bill.amount.toLocaleString()}` : 'NRs 0'}
                     </TableCell>
                     <TableCell>
-                      {bill.documents?.length > 0 ? (
+                      {(bill.documents?.length > 0 || (bill as any).documentIds?.length > 0) ? (
                         <div className="space-y-1">
-                          {bill.documents.map((doc) => (
+                          {(bill.documents || (bill as any).documentIds || []).map((doc: any) => (
                             <a
-                              key={doc.id}
-                              href={doc.url}
+                              key={doc._id || doc.id}
+                              href={doc.documentURL || doc.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
@@ -347,14 +418,40 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
         )}
 
         {/* Purchase Bills Section */}
-        {purchaseBills.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                Purchase Bills
-              </Badge>
-              <span>({purchaseBills.length})</span>
-            </h3>
+        {filteredPurchaseBills.length > 0 && (
+          <div className="overflow-x-auto mb-14">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  Purchase Bills
+                </Badge>
+                <span>({(data as any)?.purchasePagination?.totalCount || filteredPurchaseBills.length})</span>
+              </h3>
+              {/* Purchase Pagination Controls */}
+              {(data as any)?.purchasePagination && (data as any).purchasePagination.totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPurchasePage(Math.max(1, purchasePage - 1))}
+                    disabled={!(data as any).purchasePagination.hasPrevPage}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {(data as any).purchasePagination.currentPage} of {(data as any).purchasePagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPurchasePage(purchasePage + 1)}
+                    disabled={!(data as any).purchasePagination.hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -370,13 +467,13 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {purchaseBills.map((bill) => (
+                {filteredPurchaseBills.map((bill: any) => (
                   <TableRow key={bill.id}>
                     <TableCell className="font-medium">{bill.customerBillNo}</TableCell>
                     <TableCell>{bill.customerName}</TableCell>
                     <TableCell>{bill.customerPan || 'N/A'}</TableCell>
                     <TableCell>
-                      {bill.billDate ? new Date(bill.billDate).toLocaleDateString() : 'N/A'}
+                      {bill.billDate ? new Date(bill.billDate).toISOString().split('T')[0] : 'N/A'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="uppercase">
@@ -392,12 +489,12 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                       {bill.amount ? `NRs ${bill.amount.toLocaleString()}` : 'NRs 0'}
                     </TableCell>
                     <TableCell>
-                      {bill.documents?.length > 0 ? (
+                      {(bill.documents?.length > 0 || (bill as any).documentIds?.length > 0) ? (
                         <div className="space-y-1">
-                          {bill.documents.map((doc) => (
+                          {(bill.documents || (bill as any).documentIds || []).map((doc: any) => (
                             <a
-                              key={doc.id}
-                              href={doc.url}
+                              key={doc._id || doc.id}
+                              href={doc.documentURL || doc.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-1 text-blue-600 hover:underline text-sm"
@@ -481,14 +578,15 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
   }
 
   // function to preview the document
-  const handlePreview = (document: {
-    id: string;
-    originalName: string;
-    url: string;
-    documentType: string;
-    size: number;
-  }) => {
-    setPreviewDocument(document);
+  const handlePreview = (document: ApiDocument) => {
+    const previewDoc = {
+      id: (document as any)._id || (document as any).id || '',
+      originalName: document.originalName,
+      url: (document as any).documentURL || (document as any).url || '',
+      documentType: document.documentType,
+      size: (document as any).fileSize || (document as any).size || 0
+    };
+    setPreviewDocument(previewDoc);
   };
 
 
@@ -500,58 +598,58 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
         onClose={() => setPreviewDocument(null)}
         document={previewDocument}
       />
-        <div className='flex items-center justify-between gap-4'>
+      <div className='flex items-center justify-between gap-4 mb-12'>
 
-          <div className='space-y-1' >
-            <h2 className="text-2xl font-bold">Documents of Client {resolvedClientName || 'Unknown'}</h2>
-            <p className='font-medium text-md'>Company name: <span className='font-semibold text-md'>{resolvedCompanyName}</span> </p>
-          </div>
- 
-          <div className='flex items-center space-x-2'>
-            <Button
-              variant="secondary"
-              className='whitespace-nowrap cursor-pointer'
-              onClick={() => {
-                const billsPath = actualUserType === 'employee'
-                  ? `/employee/clients/${resolvedClientId}/upload-client-bills`
-                  : `/clients/${resolvedClientId}/upload-client-bills`;
+        <div className='space-y-1' >
+          <h2 className="text-2xl font-bold">Documents of Client {resolvedClientName || 'Unknown'}</h2>
+          <p className='font-medium text-md'>Company name: <span className='font-semibold text-md'>{resolvedCompanyName}</span> </p>
+        </div>
 
-                navigate(billsPath, {
-                  state: {
-                    clientId: resolvedClientId,
-                    clientName: resolvedClientName,
-                    userType: actualUserType,
-                    companyName: resolvedCompanyName
-                  }
-                });
-              }}
-            >
-              Upload Bills
-            </Button>
-            <Button variant="secondary"
-              className='whitespace-nowrap cursor-pointer'
-              onClick={() => {
-                const documentsPath = actualUserType === 'employee'
-                  ? `/employee/upload-client-documents/${clientId}`
-                  : `/upload-client-documents/${clientId}`;
+        <div className='flex items-center space-x-2'>
+          <Button
+            variant="secondary"
+            className='whitespace-nowrap cursor-pointer'
+            onClick={() => {
+              const billsPath = actualUserType === 'employee'
+                ? `/employee/clients/${resolvedClientId}/upload-client-bills`
+                : `/clients/${resolvedClientId}/upload-client-bills`;
 
-                navigate(documentsPath, {
-                  state: {
-                    clientId: clientId,
-                    clientName: resolvedClientName,
-                    userType: actualUserType,
-                    companyName: resolvedCompanyName
-                  }
-                });
-              }}
-            >
-              Upload Document
-            </Button>
-          </div>
+              navigate(billsPath, {
+                state: {
+                  clientId: resolvedClientId,
+                  clientName: resolvedClientName,
+                  userType: actualUserType,
+                  companyName: resolvedCompanyName
+                }
+              });
+            }}
+          >
+            Upload Bills
+          </Button>
+          <Button variant="secondary"
+            className='whitespace-nowrap cursor-pointer'
+            onClick={() => {
+              const documentsPath = actualUserType === 'employee'
+                ? `/employee/upload-client-documents/${clientId}`
+                : `/upload-client-documents/${clientId}`;
+
+              navigate(documentsPath, {
+                state: {
+                  clientId: clientId,
+                  clientName: resolvedClientName,
+                  userType: actualUserType,
+                  companyName: resolvedCompanyName
+                }
+              });
+            }}
+          >
+            Upload Document
+          </Button>
+        </div>
         {data && (
           <div className="text-sm text-muted-foreground">
             {currentView === 'documents'
-              ? `Showing ${(page - 1) * limit + 1}-${Math.min(page * limit, data.pagination.totalDocuments)} of ${data.pagination.totalDocuments} documents`
+              ? `Showing ${(page - 1) * limit + 1}-${Math.min(page * limit, data.documentsPagination?.totalCount || 0)} of ${data.documentsPagination?.totalCount || 0} documents`
               : `Showing ${data.bills?.length || 0} bills`
             }
           </div>
@@ -562,15 +660,20 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{data?.pagination?.totalDocuments || 0}</div>
-            <div className="text-sm text-muted-foreground">Total Documents</div>
+            <div className="text-2xl font-bold">{data?.documentsPagination?.totalCount || 0}</div>
+            <div className="text-sm text-muted-foreground">
+              Total Documents
+              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{data?.bills?.length || 0}</div>
+            <div className="text-2xl font-bold">{data?.billsPagination?.totalBills || 0}</div>
             <div className="text-sm text-muted-foreground">
-              Total Bills{nepaliMonthFilter !== 'all' ? ` (${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'})` : ''}
+              Total Bills
+              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
+              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
             </div>
           </CardContent>
         </Card>
@@ -580,7 +683,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               {data?.bills?.filter(bill => bill.billType === 'sales').length || 0}
             </div>
             <div className="text-sm text-muted-foreground">
-              Sales Bills{nepaliMonthFilter !== 'all' ? ` (${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'})` : ''}
+              Sales Bills
+              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
+              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
             </div>
           </CardContent>
         </Card>
@@ -590,7 +695,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               {data?.bills?.filter(bill => bill.billType === 'purchase').length || 0}
             </div>
             <div className="text-sm text-muted-foreground">
-              Purchase Bills{nepaliMonthFilter !== 'all' ? ` (${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'})` : ''}
+              Purchase Bills
+              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
+              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
             </div>
           </CardContent>
         </Card>
@@ -600,7 +707,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               NRs {data?.billAmountStats?.salesTotal?.toLocaleString() || '0'}
             </div>
             <div className="text-sm text-muted-foreground">
-              Sales Total{nepaliMonthFilter !== 'all' ? ` (${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'})` : ''}
+              Sales Total
+              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
+              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
             </div>
           </CardContent>
         </Card>
@@ -610,7 +719,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               NRs {data?.billAmountStats?.purchaseTotal?.toLocaleString() || '0'}
             </div>
             <div className="text-sm text-muted-foreground">
-              Purchase Total{nepaliMonthFilter !== 'all' ? ` (${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'})` : ''}
+              Purchase Total
+              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
+              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
             </div>
           </CardContent>
         </Card>
@@ -625,7 +736,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
           className="flex-1"
         >
           <File className="h-4 w-4 mr-2" />
-          Documents ({data?.pagination?.totalDocuments || 0})
+          Documents ({data?.documentsPagination?.totalCount || 0})
         </Button>
         <Button
           variant={currentView === 'bills' ? 'default' : 'ghost'}
@@ -636,14 +747,14 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
           <File className="h-4 w-4 mr-2" />
           Bills ({data?.bills?.length || 0})
         </Button>
-     
+
       </div>
 
       {/* Filters and Search */}
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSearch} className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4 mr-10 md:mr-5 sm:mr-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -661,6 +772,8 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                     onValueChange={(value) => {
                       setDocumentTypeFilter(value as DocumentType | 'all');
                       setPage(1);
+                      setSalesPage(1);
+                      setPurchasePage(1);
                     }}
                   >
                     <SelectTrigger className="w-[180px]">
@@ -683,6 +796,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                     value={billDocumentTypeFilter}
                     onValueChange={(value) => {
                       setBillDocumentTypeFilter(value as 'all' | 'pan' | 'vat');
+                      setPage(1);
+                      setSalesPage(1);
+                      setPurchasePage(1);
                     }}
                   >
                     <SelectTrigger className="w-[180px]">
@@ -705,6 +821,8 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                   onValueChange={(value) => {
                     setNepaliMonthFilter(value);
                     setPage(1);
+                    setSalesPage(1);
+                    setPurchasePage(1);
                   }}
                 >
                   <SelectTrigger className="w-[200px]">
@@ -732,12 +850,50 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                   </SelectContent>
                 </Select>
 
+                {/* Fiscal Year Filter */}
                 <Select
+                  value={fiscalYearFilter}
+                  onValueChange={(value) => {
+                    setFiscalYearFilter(value);
+                    setPage(1);
+                    setSalesPage(1);
+                    setPurchasePage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <SelectValue placeholder="Fiscal Year" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fiscalYearOptions.map((fy) => {
+                      // const isCurrentFY = fy.value === getCurrentNepalieFiscalYear();
+                      return (
+                        <SelectItem key={fy.value} value={fy.value}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{fy.label}</span>
+                            {/* {isCurrentFY && (
+                              <Badge variant="secondary" className="text-xs">
+                                Current
+                              </Badge>
+                            )} */}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {/* <Select
                   value={`${sortBy}:${sortOrder}`}
                   onValueChange={(value) => {
                     const [newSortBy, newSortOrder] = value.split(':');
                     setSortBy(newSortBy);
                     setSortOrder(newSortOrder);
+                    setPage(1);
+                    setSalesPage(1);
+                    setPurchasePage(1);
                   }}
                 >
                   <SelectTrigger className="w-[180px]">
@@ -746,14 +902,16 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="uploadDate:desc">Newest first</SelectItem>
-                    <SelectItem value="uploadDate:asc">Oldest first</SelectItem>
-                    <SelectItem value="originalName:asc">Name (A-Z)</SelectItem>
-                    <SelectItem value="originalName:desc">Name (Z-A)</SelectItem>
+                    <SelectItem value="billDate:desc">Latest Bills</SelectItem>
+                    <SelectItem value="billDate:asc">Earliest Bills</SelectItem>
+                    <SelectItem value="amount:desc">Highest Amount</SelectItem>
+                    <SelectItem value="amount:asc">Lowest Amount</SelectItem>
+                    <SelectItem value="customerName:asc">Customer (A-Z)</SelectItem>
+                    <SelectItem value="customerName:desc">Customer (Z-A)</SelectItem>
                   </SelectContent>
-                </Select>
+                </Select> */}
 
-                {(searchTerm || documentTypeFilter !== 'all' || billDocumentTypeFilter !== 'all' || nepaliMonthFilter !== 'all') && (
+                {(searchTerm || documentTypeFilter !== 'all' || billDocumentTypeFilter !== 'all' || nepaliMonthFilter !== 'all' || fiscalYearFilter !== getCurrentNepalieFiscalYear()) && (
                   <Button
                     variant="ghost"
                     onClick={clearFilters}
@@ -766,6 +924,32 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               </div>
             </div>
           </form>
+
+          {/* Download buttons - only show when there's data */}
+          <div className="flex gap-2 mt-4">
+            {currentView === 'documents' && data?.documents && data.documents.length > 0 && (
+              <Button
+                onClick={handleDownloadDocuments}
+                disabled={isDownloading}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                <FileArchive className="h-4 w-4" />
+                {isDownloading ? 'Downloading...' : 'Download Documents (ZIP)'}
+              </Button>
+            )}
+            {currentView === 'bills' && data?.bills && data.bills.length > 0 && (
+              <Button
+                onClick={handleDownloadBills}
+                disabled={isDownloading}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                {isDownloading ? 'Downloading...' : 'Download Bills (Excel)'}
+              </Button>
+            )}
+          </div>
 
           {/* Document type stats */}
           {currentView === 'documents' && (
@@ -852,7 +1036,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                   ))
                 ) : data?.documents?.length ? (
                   data.documents.map((document) => (
-                    <TableRow key={document.id} onClick={() => handlePreview(document)}>
+                    <TableRow key={document._id || document.id} onClick={() => handlePreview(document)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <File className="h-4 w-4 text-muted-foreground" />
@@ -875,19 +1059,17 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                       <TableCell>
                         <Badge variant="outline">{formatDocumentType(document.documentType)}</Badge>
                       </TableCell>
-                      <TableCell>{formatBytes(document.size)}</TableCell>
+                      <TableCell>{formatBytes(document?.fileSize || 0)}</TableCell>
                       <TableCell>
-                        <div>{formatDate(document.uploadDate)}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {document.uploadDateFormatted}
-                        </div>
+                        <div className='text-sm text-muted-foreground'>{(document?.uploadDate.split("T")[0])}</div>
+                        
                       </TableCell>
                       <TableCell>
                         {document.uploadedBy ? (
                           <div>
-                            <div>{document.uploadedBy.name}</div>
+                            <div>{document?.uploadedBy?.fullName}</div>
                             <div className="text-sm text-muted-foreground">
-                              {document.uploadedBy.role}
+                              {document?.uploadedBy?.role}
                             </div>
                           </div>
                         ) : (
@@ -936,7 +1118,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
             </Table>
 
             {/* Pagination */}
-            {data?.pagination && data.pagination.totalPages > 1 && (
+            {data?.documentsPagination && data.documentsPagination.totalPages > 1 && (
               <div className="flex items-center justify-end space-x-2 py-4 scroll-pb-10">
                 <Button
                   variant="outline"
@@ -950,13 +1132,13 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                   <span>Page</span>
                   <span className="font-medium">{page}</span>
                   <span>of</span>
-                  <span className="font-medium">{data.pagination.totalPages}</span>
+                  <span className="font-medium">{data.documentsPagination.totalPages}</span>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setPage(page + 1)}
-                  disabled={page === data.pagination.totalPages || isLoading}
+                  disabled={page === data.documentsPagination.totalPages || isLoading}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>

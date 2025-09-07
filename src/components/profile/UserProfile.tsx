@@ -115,7 +115,7 @@ export function Profile() {
               <p className="text-sm font-medium text-muted-foreground">DOB:</p>
               <p className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                {user?.DOB ? formatDate(user.DOB) : "Not specified"}
+                {user?.DOB ? formatDate(user.DOB.split("T")[0]) : "Not specified"}
               </p>
             </div>
           </div>

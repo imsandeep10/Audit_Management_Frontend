@@ -144,6 +144,7 @@ export const AssignedClientDetails = () => {
                       clientId: client._id,
                       clientName: client.fullName,
                       userType: "employee",
+                      companyName: client.companyName,
                     },
                   });
                 }}

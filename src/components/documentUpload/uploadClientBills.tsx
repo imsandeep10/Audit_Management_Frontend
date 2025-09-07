@@ -65,6 +65,7 @@ export const UploadClientBills = () => {
       sales: DEFAULT_SALES_VALUES,
       purchase: DEFAULT_PURCHASE_VALUES,
     },
+    mode: "onBlur",
   });
 
   // Progress handlers
@@ -304,7 +305,7 @@ export const UploadClientBills = () => {
               </label>
               <Input
                 {...billsForm.register("sales.customerName")}
-                placeholder="Enter customer name"
+                placeholder="Enter Customer Name"
                 className="w-full"
               />
               {billsForm.formState.errors.sales?.customerName && (
@@ -338,7 +339,7 @@ export const UploadClientBills = () => {
               </label>
               <Input
                 {...billsForm.register("sales.billNo")}
-                placeholder="Enter bill number"
+                placeholder="Enter Bill Number"
                 className="w-full"
               />
               {billsForm.formState.errors.sales?.billNo && (
@@ -358,7 +359,7 @@ export const UploadClientBills = () => {
                 onChange={(value) => billsForm.setValue("sales.customerPan", value)}
                 onCustomerSelect={handleCustomerSelect("sales")}
                 suggestions={customerSuggestions}
-                placeholder="Enter 9-digit PAN number"
+                placeholder="Enter 9-Digit PAN Number"
                 className="w-full"
                 maxLength={UI_CONSTANTS.PAN_MAX_LENGTH}
                 onInput={(e) => {
@@ -389,7 +390,7 @@ export const UploadClientBills = () => {
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="Enter amount"
+                placeholder="Enter Amount"
                 className="w-full"
                 onInput={(e) => {
                   const target = e.target as HTMLInputElement;
@@ -417,7 +418,7 @@ export const UploadClientBills = () => {
               <Input
                 {...billsForm.register("sales.phoneNumber", { valueAsNumber: true })}
                 type="number"
-                placeholder="Enter phone number"
+                placeholder="Enter Phone Number"
                 className="w-full"
                 onInput={(e) => {
                   const target = e.target as HTMLInputElement;
@@ -444,7 +445,7 @@ export const UploadClientBills = () => {
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select registration type" />
+                  <SelectValue placeholder="Select Registration Type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pan">PAN</SelectItem>
@@ -521,7 +522,7 @@ export const UploadClientBills = () => {
                 value={billsForm.watch("purchase.documentType")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select document type" />
+                  <SelectValue placeholder="Select Document Type" />
                 </SelectTrigger>
                 <SelectContent>
                   {DOCUMENT_TYPE_OPTIONS.map((option) => (
@@ -540,7 +541,7 @@ export const UploadClientBills = () => {
               </label>
               <Input
                 {...billsForm.register("purchase.customerName")}
-                placeholder="Enter vendor name"
+                placeholder="Enter Vendor Name"
                 className="w-full"
               />
               {billsForm.formState.errors.purchase?.customerName && (
@@ -553,6 +554,7 @@ export const UploadClientBills = () => {
             {/* Bill Date */}
             <div className="space-y-2">
               <DatePicker
+
                 label="Bill Date"
                 id="purchase-bill-date"
                 value={billsForm.watch("purchase.billDate")}
@@ -576,7 +578,7 @@ export const UploadClientBills = () => {
               </label>
               <Input
                 {...billsForm.register("purchase.customerBillNo")}
-                placeholder="Enter Supplier  bill number"
+                placeholder="Enter Supplier Bill Number"
                 className="w-full"
               />
               {billsForm.formState.errors.purchase?.customerBillNo && (
@@ -596,7 +598,7 @@ export const UploadClientBills = () => {
                 onChange={(value) => billsForm.setValue("purchase.customerPan", value)}
                 onCustomerSelect={handleCustomerSelect("purchase")}
                 suggestions={customerSuggestions}
-                placeholder="Enter 9-digit PAN number"
+                placeholder="Enter 9-Digit PAN Number"
                 className="w-full"
                 maxLength={UI_CONSTANTS.PAN_MAX_LENGTH}
                 onInput={(e) => {
@@ -628,7 +630,7 @@ export const UploadClientBills = () => {
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="Enter amount"
+                placeholder="Enter Amount"
                 className="w-full"
                 onInput={(e) => {
                   const target = e.target as HTMLInputElement;
@@ -657,7 +659,7 @@ export const UploadClientBills = () => {
               <Input
                 {...billsForm.register("purchase.phoneNumber", { valueAsNumber: true })}
                 type="number"
-                placeholder="Enter phone number"
+                placeholder="Enter Phone Number"
                 className="w-full"
                 onInput={(e) => {
                   const target = e.target as HTMLInputElement;
@@ -684,7 +686,7 @@ export const UploadClientBills = () => {
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select registration type" />
+                  <SelectValue placeholder="Select Registration Type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pan">PAN</SelectItem>
