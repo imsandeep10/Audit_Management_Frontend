@@ -28,9 +28,8 @@ export function EmployeeProfile() {
                 />
                 <AvatarFallback className="text-lg">
                   {user?.fullName
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                      ? user.fullName.split(" ").map((n) => n[0]).join("")
+                      : ""}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -96,7 +95,7 @@ export function EmployeeProfile() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  {user?.DOB?.split("T")[0]}
+                  {(user?.DOB ?? "").split("T")[0]}
                 </p>
               </div>
               {hasEmployeeData && user?.employee?.panNumber && (
