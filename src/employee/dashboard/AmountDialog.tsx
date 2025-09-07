@@ -160,7 +160,6 @@ const AmountDialog = ({
           clientId: amount.clientId,
           taskId: task._id,
         };
-        console.log(payload)
         await createAmountMutation.mutateAsync(payload);
       }
 

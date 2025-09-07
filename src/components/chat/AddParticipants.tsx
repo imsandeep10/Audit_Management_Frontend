@@ -94,12 +94,7 @@ const AddParticipants = ({
   const currentRoom = existingRoom || roomData?.data;
   // Initialize form data when popup opens or data changes
   useEffect(() => {
-    console.log("Effect triggered:", {
-      isPopupOpen,
-      isEditMode,
-      currentRoom: currentRoom?.name,
-      participants: currentRoom?.participants?.length,
-    });
+  
 
     if (isPopupOpen) {
       if (isEditMode && currentRoom) {

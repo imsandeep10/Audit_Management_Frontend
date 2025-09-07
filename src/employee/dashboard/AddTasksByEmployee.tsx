@@ -276,7 +276,6 @@ export function AddNewEmployeeTask({
   }, [defaultValues, mode, form, normalizeAssignedTo]);
 
   const onSubmit = (data: FormValues) => {
-    console.log(data);
     
     const transformedData = {
       taskTitle: data.taskTitle,

@@ -51,7 +51,6 @@ export const clientService = {
 
   async getClient(clientId: string) {
     const response = await axiosInstance.get(`client/${clientId}`);
-    console.log(response.data)
     return response.data;
 
   },

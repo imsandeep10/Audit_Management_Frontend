@@ -3,9 +3,6 @@ import { Card, CardContent, CardHeader } from "../../components/ui/card";
 import { useAuth } from "../../contexts/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
 
-
-
-
 export function EmployeeProfile() {
   const { user } = useAuth();
   const hasEmployeeData = user && user.employee;

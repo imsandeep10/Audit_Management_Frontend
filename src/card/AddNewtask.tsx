@@ -264,7 +264,6 @@ export function AddNewTask({
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const { mutate: createMaskebari, isPending: isCreatingMaskebari } = useCreateMaskebari();
   const { data: clients } = useGetAllClients();
-  console.log(clients)
   const { data: employeesResponse } = useGetAllEmployees();
   const employees = employeesResponse?.data?.employees || [];
 
@@ -330,7 +329,6 @@ export function AddNewTask({
   }, [defaultValues, mode, form, normalizeAssignedTo]);
 
   const onSubmit = (data: FormValues) => {
-    console.log(data)
     if (mode === "maskebari") {
       const maskebarData: TaskSubmitData = {
         taskTitle: data.taskTitle,

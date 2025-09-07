@@ -42,7 +42,6 @@ const EmployeeAssignedTasks = () => {
   
   const { mutate: updateStatus } = useUpdateSubTaskStatus();
   
-  console.log(tasks);
 
   useEffect(() => {
     if (tasks) {
@@ -107,7 +106,6 @@ const EmployeeAssignedTasks = () => {
   const handleSaveAmount = async (amounts: ClientAmount[]) => {
     if (selectedTaskForAmount) {
       try {
-        console.log("Saving amounts:", amounts, "for task:", selectedTaskForAmount._id);
         // Update task status to completed after saving amounts
         await updateStatus({ taskId: selectedTaskForAmount._id, status: "completed" });
         // Refresh the tasks data after saving amounts

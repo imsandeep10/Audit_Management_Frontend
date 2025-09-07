@@ -68,7 +68,6 @@ const TaskCard = ({
   const handleSaveAmount = async (amounts: ClientAmount[]) => {
     if (selectedSubTaskForAmount) {
       try {
-        console.log("Saving amounts:", amounts, "for subtask:", selectedSubTaskForAmount.subTaskId);
         
         // Complete the subtask after saving amounts
         onSubTaskToggle(

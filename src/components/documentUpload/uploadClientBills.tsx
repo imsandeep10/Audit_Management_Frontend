@@ -135,7 +135,6 @@ export const UploadClientBills = () => {
     billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber || 0);
   };
 
-  console.log("Customer Suggestions:", customerSuggestions);
 
   const handleBillsFilesChange =
     (billType: BillType) =>

@@ -18,7 +18,6 @@ import TasksTable from "./userTaskTable";
 const UserDetailPage = () => {
   const { userId } = useParams();
   const { data, isLoading, error } = useGetUserById(userId || "");
-console.log(data)
   const navigate = useNavigate();
   const { clientId } = useLocation().state || {};
 
@@ -112,20 +111,20 @@ console.log(data)
                 <p>
                   <Mail className="w-4 h-4" />
                 </p>
-                <p className="text-xl ">Email: {data.user.email}</p>
+                <p className="text-xl ">Email: {data?.user?.email}</p>
               </div>
               <div className="flex gap-5 items-center">
                 <p>
                   <MapPin className="w-4 h-4" />
                 </p>
-                <p className="text-xl ">Address: {data.user.address}</p>
+                <p className="text-xl ">Address: {data?.user?.address}</p>
               </div>
 
               <div className="flex gap-5 items-center">
                 <p>
                   <Cake className="w-4 h-4" />
                 </p>
-                <p className="text-xl ">DOB: {data.user.DOB.split("T")[0]}</p>
+                <p className="text-xl ">DOB: {data?.user?.DOB ? data.user.DOB.split("T")[0] : "Not available"}</p>
               </div>
             </div>
           </CardContent>
