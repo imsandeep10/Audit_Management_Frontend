@@ -3,6 +3,7 @@ import { Plus, Users } from "lucide-react";
 import { Button } from "../ui/button";
 import { useGetClients } from "../../api/useclient";
 import { createClientColumns } from "./clientColumns";
+import type { Client } from "../../lib/types";
 import { useDeleteUser } from "../../api/useUser";
 import { ClientDataTable } from "./client-data-table";
 import { BulkClientUpload } from "./ClientsDialog";
@@ -11,7 +12,6 @@ export default function ClientPage() {
   const [searchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get("page") || "0");
   const { data, isLoading, error, refetch } = useGetClients(currentPage, 5);
-
   const navigate = useNavigate();
   const { mutate: deleteUser } = useDeleteUser();
 
@@ -115,7 +115,7 @@ export default function ClientPage() {
             </div>
           </div>
         ) : (
-          <ClientDataTable
+          <ClientDataTable<Client, unknown>
             columns={columns}
             data={data?.clients || []}
             totalPages={data?.pagination?.totalPages || 0}

@@ -1001,9 +1001,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
             <CardTitle className="flex items-center gap-2">
               <File className="h-5 w-5" />
               <span>Client Documents</span>
-              {resolvedClientName && (
+              {resolvedCompanyName && (
                 <span className="text-sm font-normal text-muted-foreground">
-                  of <span className="font-medium">{resolvedClientName}</span>
+                  of <span className="font-medium">{resolvedCompanyName}</span>
                 </span>
               )}
             </CardTitle>
@@ -1152,9 +1152,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
             <CardTitle className="flex items-center gap-2">
               <File className="h-5 w-5" />
               <span>Client Bills</span>
-              {resolvedClientName && (
+              {resolvedCompanyName && (
                 <span className="text-sm font-normal text-muted-foreground">
-                  of <span className="font-medium">{resolvedClientName}</span>
+                  of <span className="font-medium">{resolvedCompanyName}</span>
                 </span>
               )}
             </CardTitle>

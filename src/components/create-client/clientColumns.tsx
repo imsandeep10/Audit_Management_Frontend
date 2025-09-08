@@ -64,16 +64,16 @@ export const createClientColumns = (
 
     {
       accessorFn: (row) => row.clientNature,
-      header: "Client Nature",
+      header: "File Index Number",
       size: 160,
       cell: ({ row }: { row: Row<Client> }) => {
         const client = row.original;
-        const clientNature = client.clientNature;
+        const clientIndex = client.indexFileNumber;
 
         return (
           <div className="flex flex-col gap-1">
             <span className="font-medium text-gray-900">
-              {clientNature || "N/A"}
+              {clientIndex || "N/A"}
             </span>
           </div>
         );

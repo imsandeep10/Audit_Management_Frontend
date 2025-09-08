@@ -95,6 +95,44 @@ export const UploadClientBills = () => {
     });
   };
 
+  // Amount input handler - fixed version
+  const handleAmountInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    let value = target.value;
+    
+    // Remove any non-numeric characters except decimal point
+    value = value.replace(/[^0-9.]/g, "");
+    
+    // Handle multiple decimal points - keep only the first one
+    const decimalIndex = value.indexOf(".");
+    if (decimalIndex !== -1) {
+      const beforeDecimal = value.substring(0, decimalIndex);
+      const afterDecimal = value.substring(decimalIndex + 1).replace(/\./g, "");
+      value = beforeDecimal + "." + afterDecimal;
+    }
+    
+    // Limit to 2 decimal places
+    const parts = value.split(".");
+    if (parts[1] && parts[1].length > 2) {
+      value = parts[0] + "." + parts[1].substring(0, 2);
+    }
+    
+    target.value = value;
+  };
+
+  // Phone number input handler
+  const handlePhoneInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    // Allow only numbers
+    target.value = target.value.replace(/[^0-9]/g, "");
+  };
+
+  // PAN input handler
+  const handlePANInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const target = e.target as HTMLInputElement;
+    target.value = target.value.replace(VALIDATION_PATTERNS.NUMBERS_ONLY, "");
+  };
+
   // Hooks
   const uploadFilesMutation = useUploadFiles({
     onUploadStart: handleUploadStart,
@@ -134,7 +172,6 @@ export const UploadClientBills = () => {
     // Set phone number if available
     billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber || 0);
   };
-
 
   const handleBillsFilesChange =
     (billType: BillType) =>
@@ -207,7 +244,9 @@ export const UploadClientBills = () => {
           <h1 className="text-2xl font-bold mb-1 text-center border-b-2">
             Upload Bills for {clientName || clientId}
           </h1>
-          <p className="text-gray-800 space-x-3 font-semibold"><span className="text-gray-600">Company Name:</span> {companyName || " Company Name Not Provided"}</p>
+          <p className="text-gray-800 space-x-3 font-semibold">
+            <span className="text-gray-600">Company Name:</span> {companyName || " Company Name Not Provided"}
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <Button
@@ -348,7 +387,7 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-            {/* Customer PAN (Optional) */}
+            {/* Customer PAN */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Customer PAN Number <span className="text-red-500">*</span>
@@ -361,13 +400,7 @@ export const UploadClientBills = () => {
                 placeholder="Enter 9-Digit PAN Number"
                 className="w-full"
                 maxLength={UI_CONSTANTS.PAN_MAX_LENGTH}
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  target.value = target.value.replace(
-                    VALIDATION_PATTERNS.NUMBERS_ONLY,
-                    ""
-                  );
-                }}
+                onInput={handlePANInput}
                 required={true}
                 name="sales.customerPan"
                 isLoading={isLoadingCustomers}
@@ -379,26 +412,22 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-            {/* chargeable amount */}
+            {/* Amount - FIXED */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Amount <span className="text-red-500">*</span>
               </label>
               <Input
                 {...billsForm.register("sales.amount", { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 placeholder="Enter Amount"
                 className="w-full"
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  // Allow numbers and decimal point
-                  target.value = target.value.replace(/[^0-9.]/g, "");
-                  // Ensure only one decimal point
-                  const parts = target.value.split(".");
-                  if (parts.length > 2) {
-                    target.value = parts[0] + "." + parts.slice(1).join("");
+                onInput={handleAmountInput}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value > 0) {
+                    e.target.value = value.toFixed(2);
+                    billsForm.setValue("sales.amount", value);
                   }
                 }}
               />
@@ -416,14 +445,10 @@ export const UploadClientBills = () => {
               </label>
               <Input
                 {...billsForm.register("sales.phoneNumber", { valueAsNumber: true })}
-                type="number"
+                type="text"
                 placeholder="Enter Phone Number"
                 className="w-full"
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  // Allow only numbers
-                  target.value = target.value.replace(/[^0-9]/g, "");
-                }}
+                onInput={handlePhoneInput}
               />
               {billsForm.formState.errors.sales?.phoneNumber && (
                 <p className="text-sm text-red-600">
@@ -457,7 +482,6 @@ export const UploadClientBills = () => {
                 </p>
               )}
             </div>
-
 
             {/* File Upload */}
             <div className="space-y-2">
@@ -533,7 +557,7 @@ export const UploadClientBills = () => {
               </Select>
             </div>
 
-            {/* Customer Name */}
+            {/* Vendor Name */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Vendor<span className="text-red-500">*</span>
@@ -553,7 +577,6 @@ export const UploadClientBills = () => {
             {/* Bill Date */}
             <div className="space-y-2">
               <DatePicker
-
                 label="Bill Date"
                 id="purchase-bill-date"
                 value={billsForm.watch("purchase.billDate")}
@@ -587,7 +610,7 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-            {/* Supplier PAN (Optional) */}
+            {/* Supplier PAN */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Supplier PAN Number <span className="text-red-500">*</span>
@@ -600,13 +623,7 @@ export const UploadClientBills = () => {
                 placeholder="Enter 9-Digit PAN Number"
                 className="w-full"
                 maxLength={UI_CONSTANTS.PAN_MAX_LENGTH}
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  target.value = target.value.replace(
-                    VALIDATION_PATTERNS.NUMBERS_ONLY,
-                    ""
-                  );
-                }}
+                onInput={handlePANInput}
                 required={true}
                 name="purchase.customerPan"
                 isLoading={isLoadingCustomers}
@@ -618,27 +635,22 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-
-            {/* Customer Chargeable Amount */}
+            {/* Amount - FIXED */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Amount <span className="text-red-500">*</span>
               </label>
               <Input
                 {...billsForm.register("purchase.amount", { valueAsNumber: true })}
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
                 placeholder="Enter Amount"
                 className="w-full"
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  // Allow numbers and decimal point
-                  target.value = target.value.replace(/[^0-9.]/g, "");
-                  // Ensure only one decimal point
-                  const parts = target.value.split(".");
-                  if (parts.length > 2) {
-                    target.value = parts[0] + "." + parts.slice(1).join("");
+                onInput={handleAmountInput}
+                onBlur={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value > 0) {
+                    e.target.value = value.toFixed(2);
+                    billsForm.setValue("purchase.amount", value);
                   }
                 }}
               />
@@ -649,7 +661,6 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-
             {/* Supplier Phone Number */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
@@ -657,14 +668,10 @@ export const UploadClientBills = () => {
               </label>
               <Input
                 {...billsForm.register("purchase.phoneNumber", { valueAsNumber: true })}
-                type="number"
+                type="text"
                 placeholder="Enter Phone Number"
                 className="w-full"
-                onInput={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  // Allow only numbers
-                  target.value = target.value.replace(/[^0-9]/g, "");
-                }}
+                onInput={handlePhoneInput}
               />
               {billsForm.formState.errors.purchase?.phoneNumber && (
                 <p className="text-sm text-red-600">
@@ -698,7 +705,6 @@ export const UploadClientBills = () => {
                 </p>
               )}
             </div>
-
 
             {/* File Upload */}
             <div className="space-y-2">

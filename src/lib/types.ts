@@ -103,7 +103,6 @@ export type Employee = {
   position: string;
 };
 
-// Raw API response interface
 export interface RawClientData {
   _id?: string;
   VCTSID?: string;
@@ -139,6 +138,7 @@ export type Client = {
   status?: "active" | "inactive";
   assignedEmployees: string[];
   createdAt: string;
+  indexFileNumber?: string;
   updatedAt: string;
   __v: number;
   user: {
