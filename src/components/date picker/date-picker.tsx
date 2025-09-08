@@ -531,6 +531,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
         
         days.push(
           <button
+            type="button"
             key={day}
             onClick={() => selectDate(date)}
             disabled={isDateDisabled}
@@ -571,6 +572,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
         <div className="grid grid-cols-3 gap-2">
           {months.map((month, index) => (
             <button
+              type="button"
               key={index}
               onClick={() => {
                 setViewMonth(index + 1);
@@ -594,6 +596,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
       for (let year = yearRange.start; year <= yearRange.end; year++) {
         years.push(
           <button
+            type="button"
             key={year}
             onClick={() => {
               setViewYear(year);
@@ -671,6 +674,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <button
+                  type="button"
                   onClick={() => {
                     if (viewMode === 'calendar') changeMonth(-1);
                     else if (viewMode === 'months') setViewYear(viewYear - 1);
@@ -682,6 +686,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
                 </button>
                 
                 <button
+                  type="button"
                   onClick={() => {
                     if (viewMode === 'calendar') setViewMode('months');
                     else if (viewMode === 'months') setViewMode('years');
@@ -693,6 +698,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
                 </button>
                 
                 <button
+                  type="button"
                   onClick={() => {
                     if (viewMode === 'calendar') changeMonth(1);
                     else if (viewMode === 'months') setViewYear(viewYear + 1);
@@ -714,6 +720,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
               {/* Footer */}
               <div className="mt-4 pt-3 border-t border-gray-200">
                 <button
+                  type="button"
                   onClick={goToToday}
                   className="text-xs px-3 py-1 rounded hover:bg-gray-100 text-gray-600"
                 >
