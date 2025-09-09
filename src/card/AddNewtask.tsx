@@ -139,7 +139,7 @@ const createFormSchema = (mode: string) => {
   if (mode === "maskebari") {
     return z.object({
       ...baseFields,
-      type: z.enum(['monthly', 'trimester','ITR','Estimated Return']),
+      type: z.enum(['Monthly', 'Trimester','ITR','Estimated Return']),
     });
   }
 
@@ -176,7 +176,7 @@ export function AddNewTask({
     clientId: string;
     dueDate: string;
     subTasks: { title: string }[];
-    type?: "monthly" | "trimester" |"Estimated Return" |'ITR';
+    type?: "Monthly" | "Trimester" |"Estimated Return" |'ITR';
   };
 }) {
   type AssigneeInput = string | { _id?: string; id?: string };
@@ -203,7 +203,7 @@ export function AddNewTask({
     status: string;
     dueDate: string;
     clientId?: string;
-    type?: 'monthly' | 'trimester'| "ITR"|'Estimated Return';
+    type?: 'Monthly' | 'Trimester'| "ITR"|'Estimated Return';
     assignedTo?: string[];
     subTasks?: { title: string }[];
   };
@@ -216,14 +216,14 @@ export function AddNewTask({
             description: defaultValues.description,
             status: defaultValues.status,
             dueDate: defaultValues.dueDate,
-            type: defaultValues.type ?? 'monthly',
+            type: defaultValues.type ?? 'Monthly',
           }
         : {
             taskTitle: "",
             description: "",
             status: "",
             dueDate: "",
-            type: 'monthly',
+            type: 'Monthly',
           };
     }
 
@@ -264,6 +264,7 @@ export function AddNewTask({
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const { mutate: createMaskebari, isPending: isCreatingMaskebari } = useCreateMaskebari();
   const { data: clients } = useGetAllClients();
+  console.log(clients)
   const { data: employeesResponse } = useGetAllEmployees();
   const employees = employeesResponse?.data?.employees || [];
 
@@ -271,36 +272,40 @@ export function AddNewTask({
   const clientList = clients?.data?.clients || [];
 
   // Fixed filtering logic with lowercase conversion for API values
-  const filteredClients = useMemo(() => {
-    if (mode !== 'maskebari' || !periodType) {
-      return clientList;
-    }
+// Fixed filtering logic with proper case handling
+const filteredClients = useMemo(() => {
+  if (mode !== 'maskebari' || !periodType) {
+    return clientList;
+  }
 
-    // For ITR and Estimated Return, show all clients
-    if (periodType === "ITR" || periodType === "Estimated Return") {
-      return clientList;
-    }
+  // For ITR and Estimated Return, show all clients
+  if (periodType === "ITR" || periodType === "Estimated Return") {
+    return clientList;
+  }
 
-    // For monthly/trimester types, filter based on client's fillingperiod
-    return clientList.filter((client: any) => {
-      if (!client.fillingperiod) return false;
-      
-      const clientPeriod = client.fillingperiod.toLowerCase();
-      const selectedPeriod = periodType.toLowerCase();
-      
-      // Handle monthly variations
-      if (selectedPeriod === 'monthly') {
-        return clientPeriod === 'monthly';
-      }
-      
-      // Handle trimester variations (including trismester typo)
-      if (selectedPeriod === 'trimester') {
-        return clientPeriod === 'trimester' || clientPeriod === 'trismester';
-      }
-      
-      return false;
-    });
-  }, [mode, periodType, clientList]);
+  // For monthly/trimester types, filter based on client's fillingperiod
+  return clientList.filter((client: any) => {
+    if (!client.fillingperiod) return false;
+    
+    // Convert both to lowercase for comparison
+    const clientPeriod = client.fillingperiod.toLowerCase().trim();
+    const selectedPeriod = periodType.toLowerCase().trim();
+    
+    console.log('Comparing:', { clientPeriod, selectedPeriod, clientName: client.companyName });
+    
+    // Handle monthly variations
+    if (selectedPeriod === 'monthly') {
+      return clientPeriod === 'monthly';
+    }
+    
+    // Handle trimester variations (including potential typos like 'trismester')
+    if (selectedPeriod === 'trimester') {
+      return clientPeriod === 'trimester' || clientPeriod === 'trismester';
+    }
+    
+    return false;
+  });
+}, [mode, periodType, clientList]);
 
   const isPending = isCreating || isUpdating || isCreatingMaskebari;
 
@@ -322,7 +327,7 @@ export function AddNewTask({
         description: defaultValues.description,
         status: defaultValues.status,
         dueDate: defaultValues.dueDate,
-        type: defaultValues.type ?? "monthly",
+        type: defaultValues.type ?? "Monthly",
       };
       form.reset(maskebarValues);
     }
