@@ -2,7 +2,7 @@ import { Cake, IdCardLanyard, Mail, MapPin, Phone } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import {  useLocation, useNavigate, useParams } from "react-router-dom";
 import { useGetUserById } from "../../api/useUser";
 import { Button } from "../../components/ui/button";
 import {
@@ -20,6 +20,50 @@ const UserDetailPage = () => {
   const { data, isLoading, error } = useGetUserById(userId || "");
   const navigate = useNavigate();
   const { clientId } = useLocation().state || {};
+
+  // Function to format phone number for WhatsApp
+  const formatPhoneForWhatsApp = (phoneNumber: string) => {
+    if (!phoneNumber) return '';
+    
+    // Remove all non-digit characters
+    let cleaned = phoneNumber.replace(/\D/g, '');
+    
+    // If it starts with 0, replace with country code (assuming Nepal +977)
+    if (cleaned.startsWith('0')) {
+      cleaned = '977' + cleaned.substring(1);
+    }
+    // If it doesn't start with country code, add Nepal country code
+    else if (!cleaned.startsWith('977') && cleaned.length === 10) {
+      cleaned = '977' + cleaned;
+    }
+    
+    return cleaned;
+  };
+
+  // Function to create WhatsApp URL
+  const createWhatsAppURL = (phoneNumber: string) => {
+    const formattedNumber = formatPhoneForWhatsApp(phoneNumber);
+    if (!formattedNumber) return '#';
+    
+    // Using the official WhatsApp Web/App URL format
+    return `https://wa.me/${formattedNumber}`;
+  };
+
+  // Function to handle WhatsApp click
+  const handleWhatsAppClick = (e: React.MouseEvent) => {
+    const phoneNumber = data?.user?.phoneNumber;
+    if (!phoneNumber) {
+      e.preventDefault();
+      alert('Phone number not available');
+      return;
+    }
+
+    const whatsappURL = createWhatsAppURL(phoneNumber);
+    
+    // Try to open in new tab/window
+    window.open(whatsappURL, '_blank', 'noopener,noreferrer');
+    e.preventDefault(); // Prevent default Link behavior
+  };
 
   if (!userId) {
     return <p>User Not Found</p>;
@@ -61,35 +105,41 @@ const UserDetailPage = () => {
                 </div>
               </div>
              
-                <div className="flex items-center gap-4 mt-2">
-                  <div>
-                    <Link
-                      to={`${import.meta.env.VITE_WHATSAPP_URL}${data?.user?.phoneNumber
-                        }`}
+              <div className="flex items-center gap-4 mt-2">
+                <div>
+                  {data?.user?.phoneNumber ? (
+                    <button
+                      onClick={handleWhatsAppClick}
+                      className="flex items-center justify-center hover:scale-110 transition-transform"
+                      title={`Chat with ${data.user.fullName} on WhatsApp`}
                     >
-                      <FaWhatsapp size={24} className="text-green-600" />
-                    </Link>
-                  </div>
-                  {data.user.client && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        navigate(`/clients/${clientId}/documents`, {
-                          state: {
-                            clientId: clientId,
-                            userName: data.user.fullName,
-                            companyName: data.user.client.companyName,
-                          },
-                        });
-                      }}
-                      className="block gap-2"
-                    >
-                      View Documents
-                    </Button>
+                      <FaWhatsapp size={24} className="text-green-600 hover:text-green-700" />
+                    </button>
+                  ) : (
+                    <div className="opacity-50" title="Phone number not available">
+                      <FaWhatsapp size={24} className="text-gray-400" />
+                    </div>
                   )}
-
                 </div>
+                {data.user.client && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigate(`/clients/${clientId}/documents`, {
+                        state: {
+                          clientId: clientId,
+                          userName: data.user.fullName,
+                          companyName: data.user.client.companyName,
+                        },
+                      });
+                    }}
+                    className="block gap-2"
+                  >
+                    View Documents
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -236,11 +286,9 @@ const UserDetailPage = () => {
                   )}
                 </div>
               </div>
-        <TasksTable tasks={data.user.employee.assignedTasks} />
+              <TasksTable tasks={data.user.employee.assignedTasks} />
             </CardContent>
           </Card>
-     
-
         )}
       </div>
     </>

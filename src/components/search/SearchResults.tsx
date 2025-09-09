@@ -66,6 +66,24 @@ interface SearchItem {
     _id: string;
     companyName: string;
   };
+  // Updated to include user info for clients and employees
+  user?: {
+    _id: string;
+    fullName?: string;
+    email?: string;
+    role?: string;
+    phoneNumber?: string;
+    isActive?: boolean;
+    address?: string;
+    DOB?: string;
+    lastLogin?: string;
+  };
+  // Employee specific populated fields
+  assignedClients?: Array<{
+    _id: string;
+    companyName: string;
+    registrationNumber?: string;
+  }>;
 }
 
 interface SearchData {
@@ -95,9 +113,6 @@ export default function SearchResult({ onResultClick }: SearchResultProps) {
     const regex = new RegExp(`(${searchTerm})`, "gi");
     const parts = text.split(regex);
 
-
-
-
     return (
       <>
         {parts.map((part, index) =>
@@ -113,51 +128,71 @@ export default function SearchResult({ onResultClick }: SearchResultProps) {
     );
   };
 
-  const handleItemClick = (item: SearchItem, category: string) => {
-    if (onResultClick) onResultClick();
+const handleItemClick = (item: SearchItem, category: string) => {
+  if (onResultClick) onResultClick();
 
-    switch (category) {
-      case "documents":
-        if (item.documentURL) {
-          window.open(item.documentURL, "_blank");
-        }
-        break;
-      case "tasks":
-        navigate(`/assignment`);
-        break;
-      case "clients":
-        navigate(`/clients/${item._id}`);
-        break;
-      case "employees":
+  switch (category) {
+    case "documents":
+      if (item.documentURL) {
+        window.open(item.documentURL, "_blank");
+      }
+      break;
+    case "tasks":
+      navigate(`/assignment`);
+      break;
+    case "clients":
+      // Navigate to the client's user profile
+      if (item.user?._id) {
+        navigate(`/user-detail/${item.user._id}`, {
+          state: {
+            clientId: item._id,
+            clientName: item.companyName,
+          },
+        });
+      } else {
+        toast.error("No user information available for this client");
+      }
+      break;
+    case "employees":
+      // Navigate to the employee's user profile
+      if (item.user?._id) {
+        navigate(`/user-detail/${item.user._id}`, {
+          state: {
+            employeeId: item._id,
+            employeePosition: item.position,
+          },
+        });
+      } else {
+        // Fallback to employee ID if user info not available
         navigate(`/employees/${item._id}`);
-        break;
-      case "users":
-        // Handle user roles differently
-        switch (item.role?.toLowerCase()) {
-          case "admin":
-            navigate(`/profile`);
-            break;
-          case "employee":
-            navigate(`/user-detail/${item._id}`);
-            break;
-          case "client":
-            navigate(`/user-detail/${item._id}`, {
-              state: {
-                clientId: item.client?._id || item.clientId?._id,
-                clientName:
-                  item.client?.companyName || item.clientId?.companyName,
-              },
-            });
-            break;
-          default:
-            navigate(`/profile`);
-            break;
-        }
-        break;
-      default:
-        break;
-    }
-  };
+      }
+      break;
+    case "users":
+      switch (item.role?.toLowerCase()) {
+        case "admin":
+          navigate(`/profile`);
+          break;
+        case "employee":
+          navigate(`/user-detail/${item._id}`);
+          break;
+        case "client":
+          navigate(`/user-detail/${item._id}`, {
+            state: {
+              clientId: item.client?._id || item.clientId?._id,
+              clientName:
+                item.client?.companyName || item.clientId?.companyName,
+            },
+          });
+          break;
+        default:
+          navigate(`/profile`);
+          break;
+      }
+      break;
+    default:
+      break;
+  }
+};
 
   if (isFetching)
     return <p className="p-4 text-center text-gray-500">Loading...</p>;
@@ -209,23 +244,58 @@ export default function SearchResult({ onResultClick }: SearchResultProps) {
                 {highlightSearchTerm(item.address, debouncedTerm)}
               </span>
             )}
+            {/* Display user information */}
+            {item.user && (
+              <div className="mt-1 p-2 bg-blue-50 rounded border-l-2 border-blue-300">
+                <span className="text-sm font-medium text-blue-800">
+                  Contact: {highlightSearchTerm(item.user.fullName || "", debouncedTerm)}
+                </span>
+                <div className="text-xs text-blue-600">
+                  {highlightSearchTerm(item.user.email || "", debouncedTerm)}
+                </div>
+                {item.user.phoneNumber && (
+                  <div className="text-xs text-blue-600">
+                    {highlightSearchTerm(item.user.phoneNumber, debouncedTerm)}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       case "employees":
         return (
           <div className="flex flex-col">
             <span className="font-medium">
-              {highlightSearchTerm(item.fullName || "", debouncedTerm)}
+              {highlightSearchTerm(item.user?.fullName || item.fullName || "", debouncedTerm)}
             </span>
             {item.position && (
               <span className="text-sm text-gray-500">
                 Position: {highlightSearchTerm(item.position, debouncedTerm)}
               </span>
             )}
-            {item.phoneNumber && (
+            {(item.user?.phoneNumber || item.phoneNumber) && (
               <span className="text-sm text-gray-500">
-                Phone: {highlightSearchTerm(item.phoneNumber, debouncedTerm)}
+                Phone: {highlightSearchTerm(item.user?.phoneNumber || item.phoneNumber || "", debouncedTerm)}
               </span>
+            )}
+            {/* Display user information */}
+            {item.user && (
+              <div className="mt-1 p-2 bg-green-50 rounded border-l-2 border-green-300">
+                <div className="text-xs text-green-600">
+                  {highlightSearchTerm(item.user.email || "", debouncedTerm)}
+                </div>
+                {item.user.address && (
+                  <div className="text-xs text-green-600">
+                    Address: {highlightSearchTerm(item.user.address, debouncedTerm)}
+                  </div>
+                )}
+              </div>
+            )}
+            {/* Display assigned clients */}
+            {item.assignedClients && item.assignedClients.length > 0 && (
+              <div className="mt-1 text-xs text-gray-500">
+                Assigned to: {item.assignedClients.map(client => client.companyName).join(", ")}
+              </div>
             )}
           </div>
         );

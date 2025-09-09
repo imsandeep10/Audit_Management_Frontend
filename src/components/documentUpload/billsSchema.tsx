@@ -8,6 +8,22 @@ export const customerPanSchema = z
   .optional()
   .refine((val) => !val || /^\d{9}$/.test(val), "PAN must be exactly 9 digits");
 
+// Phone number validation for both mobile and landline
+const phoneNumberSchema = z.union([
+  // Mobile numbers: 98XXXXXXXX or 97XXXXXXXX (10 digits)
+  z.number().min(9700000000, "Invalid phone number").max(9899999999, "Invalid phone number"),
+  // Landline numbers: typically 6-8 digits (without area code) or with leading 0
+  z.number().min(1000000, "Landline number too short").max(99999999, "Landline number too long")
+]).refine((val) => {
+  const str = val.toString();
+  // Mobile: starts with 97 or 98 and is 10 digits
+  if (str.startsWith('97') || str.startsWith('98')) {
+    return str.length === 10;
+  }
+  // Landline: 6-8 digits or starts with 0 followed by 6-8 digits
+  return str.length >= 6 && str.length <= 9;
+}, "Invalid phone number format");
+
 // Sales bill schema
 export const salesBillSchema = z.object({
   documentType: documentTypeSchema,
@@ -18,7 +34,7 @@ export const salesBillSchema = z.object({
   files: z.array(z.instanceof(File)).optional(),
   documentIds: z.array(z.string()).optional(),
   amount: z.number().min(1, "Amount must be a positive number"),
-  phoneNumber: z.number().min(1000000000, "Phone number must be at least 10 digits").max(9999999999, "Phone number must be at most 10 digits"),
+  phoneNumber: phoneNumberSchema,
   registrationType: registrationTypeSchema,
 });
 
@@ -32,7 +48,7 @@ export const purchaseBillSchema = z.object({
   files: z.array(z.instanceof(File)).optional(),
   documentIds: z.array(z.string()).optional(),
   amount: z.number().min(1, "Amount must be a positive number"),
-  phoneNumber: z.number().min(1000000000, "Phone number must be at least 10 digits").max(9999999999, "Phone number must be at most 10 digits"),
+  phoneNumber: phoneNumberSchema,
   registrationType: registrationTypeSchema,
 });
 

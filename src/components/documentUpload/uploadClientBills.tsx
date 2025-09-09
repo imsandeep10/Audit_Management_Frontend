@@ -151,6 +151,8 @@ export const UploadClientBills = () => {
   const createPurchaseBillMutation = useCreateBill({
     onSuccess: () => {
       toast.success("Purchase Bill created");
+      window.location.reload();
+
     },
   });
 
@@ -444,7 +446,7 @@ export const UploadClientBills = () => {
                 Phone Number <span className="text-red-500">*</span>
               </label>
               <Input
-                {...billsForm.register("sales.phoneNumber", { valueAsNumber: true })}
+                {...billsForm.register("sales.phoneNumber")}
                 type="text"
                 placeholder="Enter Phone Number"
                 className="w-full"
@@ -667,7 +669,7 @@ export const UploadClientBills = () => {
                 Phone Number <span className="text-red-500">*</span>
               </label>
               <Input
-                {...billsForm.register("purchase.phoneNumber", { valueAsNumber: true })}
+                {...billsForm.register("purchase.phoneNumber")}
                 type="text"
                 placeholder="Enter Phone Number"
                 className="w-full"

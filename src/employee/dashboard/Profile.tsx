@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar"
 
 export function EmployeeProfile() {
   const { user } = useAuth();
+  console.log(user)
   const hasEmployeeData = user && user.employee;
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 max-h-screen overflow-y-auto">
