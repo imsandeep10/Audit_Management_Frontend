@@ -264,7 +264,6 @@ export function AddNewTask({
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
   const { mutate: createMaskebari, isPending: isCreatingMaskebari } = useCreateMaskebari();
   const { data: clients } = useGetAllClients();
-  console.log(clients)
   const { data: employeesResponse } = useGetAllEmployees();
   const employees = employeesResponse?.data?.employees || [];
 
@@ -291,7 +290,6 @@ const filteredClients = useMemo(() => {
     const clientPeriod = client.fillingperiod.toLowerCase().trim();
     const selectedPeriod = periodType.toLowerCase().trim();
     
-    console.log('Comparing:', { clientPeriod, selectedPeriod, clientName: client.companyName });
     
     // Handle monthly variations
     if (selectedPeriod === 'monthly') {

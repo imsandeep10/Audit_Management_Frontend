@@ -18,65 +18,112 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "../../components/ui/chart";
-import { useGetMonthlyReport } from "../../api/useReport";
+import { useGetMonthlyUserReport } from "../../api/useReport";
 
-export const description = "A stacked bar chart with a legend";
+export const description = "A stacked bar chart showing completed vs uncompleted";
 
 const chartConfig = {
-  totalTasks: {
-    label: "Total Tasks",
-    color: "#e5e7eb", // light gray
+  completedTasks: {
+    label: "Completed",
+    color: "#10b981", // emerald
   },
-  overdueTasks: {
-    label: "Overdue Tasks",
-    color: "#ef4444", // red
+  uncompletedTasks: {
+    label: "Uncompleted",
+    color: "#f59e0b", // amber
   },
 } satisfies ChartConfig;
 export function ChartBarStacked() {
-  const { data } = useGetMonthlyReport();
-  const chartData = data?.data || [];
+  const { data } = useGetMonthlyUserReport();
+  console.log(data,"data")
+  const payload = data?.data as any;
+  const apiData = Array.isArray(payload?.data) ? payload.data : [];
+  const monthLabels = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
-  const getDateRange = () => {
-    if (!chartData || chartData.length === 0) return "No data available";
-
-    const firstMonth = chartData[0]?.month;
-    const lastMonth = chartData[chartData.length - 1]?.month;
-
-    if (firstMonth && lastMonth) {
-      return `${firstMonth} - ${lastMonth}` + " " + new Date().getFullYear();
-    }
-    return "Monthly Task Overview";
+  const fullToAbbrev: Record<string, string> = {
+    January: "Jan",
+    February: "Feb",
+    March: "Mar",
+    April: "Apr",
+    May: "May",
+    June: "Jun",
+    July: "Jul",
+    August: "Aug",
+    September: "Sep",
+    October: "Oct",
+    November: "Nov",
+    December: "Dec",
   };
+
+  // Seed all months to avoid a single giant bar when data collapses
+  const monthToCounts: Record<string, { completedTasks: number; uncompletedTasks: number }> = monthLabels.reduce(
+    (acc, m) => {
+      acc[m] = { completedTasks: 0, uncompletedTasks: 0 };
+      return acc;
+    },
+    {} as Record<string, { completedTasks: number; uncompletedTasks: number }>
+  );
+
+  for (const row of apiData) {
+    const key = fullToAbbrev[row.month as keyof typeof fullToAbbrev];
+    if (!key) continue;
+    monthToCounts[key].completedTasks = row.completed ?? 0;
+    monthToCounts[key].uncompletedTasks = row.nonCompleted ?? 0;
+  }
+
+  const chartData = monthLabels.map((m) => ({ name: m, ...monthToCounts[m] }));
+
+  const totals = Object.values(monthToCounts).reduce(
+    (acc, v) => {
+      acc.completed += v.completedTasks;
+      acc.uncompleted += v.uncompletedTasks;
+      return acc;
+    },
+    { completed: 0, uncompleted: 0 }
+  );
+  const getSubtitle = () => `Total: ${totals.completed + totals.uncompleted}`;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Monthly Task Overview</CardTitle>
-        <CardDescription>{getDateRange()}</CardDescription>
+        <CardTitle>Task Status Overview</CardTitle>
+        <CardDescription>{getSubtitle()}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
           <BarChart accessibilityLayer data={chartData}>
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="name"
               tickLine={false}
               tickMargin={10}
               axisLine={false}
-              tickFormatter={(value) => value.slice(0, 3)}
+              tickFormatter={(value) => value}
             />
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <ChartLegend content={<ChartLegendContent />} />
             <Bar
-              dataKey="totalTasks"
+              dataKey="completedTasks"
               stackId="a"
-              fill="var(--color-totalTasks)"
+              fill="var(--color-completedTasks)"
               radius={[0, 0, 4, 4]}
             />
             <Bar
-              dataKey="overdueTasks"
+              dataKey="uncompletedTasks"
               stackId="a"
-              fill="var(--color-overdueTasks)"
+              fill="var(--color-uncompletedTasks)"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>

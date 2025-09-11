@@ -44,6 +44,23 @@ export interface Client {
   status?: string;
   profileImageId?: DocumentImage;
   assignedTasks?: AssignedTask[];
+  // Extended fields for card display
+  IRDID?: string;
+  IRDoffice?: string;
+  bills?: any[];
+  clientNature?: string;
+  clientType?: string;
+  createdAt?: string;
+  dateOfTaxRegistration?: string;
+  dateOfVatRegistration?: string;
+  fillingperiod?: string;
+  indexFileNumber?: string;
+  irdPassword?: string;
+  maskebari?: string | null;
+  profileImage?: string | null;
+  registeredUnder?: string;
+  updatedAt?: string;
+  userAddress?: string;
 }
 
 export interface Employee {

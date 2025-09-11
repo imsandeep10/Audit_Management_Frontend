@@ -171,8 +171,8 @@ export const UploadClientBills = () => {
     // Set registration type to match the selected customer's preference
     billsForm.setValue(`${billType}.registrationType`, customer.registrationType);
 
-    // Set phone number if available
-    billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber || 0);
+    // Set phone number if available (store as string in form)
+    billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber?.toString() || "");
   };
 
   const handleBillsFilesChange =
@@ -205,8 +205,18 @@ export const UploadClientBills = () => {
     const isValid = await billsForm.trigger("sales");
     if (isValid) {
       const salesData = billsForm.getValues("sales");
+      const billData = {
+        documentType: salesData.documentType,
+        customerName: salesData.customerName,
+        billDate: salesData.billDate,
+        billNo: salesData.billNo,
+        customerPan: salesData.customerPan,
+        amount: salesData.amount,
+        phoneNumber: salesData.phoneNumber ? Number(salesData.phoneNumber) : undefined,
+        registrationType: salesData.registrationType,
+      };
       await createSalesBillMutation.mutateAsync({
-        billData: salesData,
+        billData,
         documentIds: salesData.documentIds || [],
         billType: "sales",
         clientId,
@@ -218,8 +228,18 @@ export const UploadClientBills = () => {
     const isValid = await billsForm.trigger("purchase");
     if (isValid) {
       const purchaseData = billsForm.getValues("purchase");
+      const billData = {
+        documentType: purchaseData.documentType,
+        customerName: purchaseData.customerName,
+        billDate: purchaseData.billDate,
+        customerBillNo: purchaseData.customerBillNo,
+        customerPan: purchaseData.customerPan,
+        amount: purchaseData.amount,
+        phoneNumber: purchaseData.phoneNumber ? Number(purchaseData.phoneNumber) : undefined,
+        registrationType: purchaseData.registrationType,
+      };
       await createPurchaseBillMutation.mutateAsync({
-        billData: purchaseData,
+        billData,
         documentIds: purchaseData.documentIds || [],
         billType: "purchase",
         clientId,
@@ -440,10 +460,10 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-            {/* Phone Number */}
+            {/* Phone Number (Optional) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Phone Number <span className="text-red-500">*</span>
+                Phone Number (optional)
               </label>
               <Input
                 {...billsForm.register("sales.phoneNumber")}
@@ -663,10 +683,10 @@ export const UploadClientBills = () => {
               )}
             </div>
 
-            {/* Supplier Phone Number */}
+            {/* Supplier Phone Number (Optional) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Phone Number <span className="text-red-500">*</span>
+                Phone Number (optional)
               </label>
               <Input
                 {...billsForm.register("purchase.phoneNumber")}

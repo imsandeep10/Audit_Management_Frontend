@@ -81,6 +81,7 @@ const MaskebariRecords: React.FC = () => {
     isLoading: boolean;
     isError: boolean;
   };
+  console.log(data)
 
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());

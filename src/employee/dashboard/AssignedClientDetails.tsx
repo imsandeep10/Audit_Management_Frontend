@@ -35,6 +35,7 @@ export const AssignedClientDetails = () => {
     placeholderData: keepPreviousData,
   });
 
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -117,22 +118,19 @@ export const AssignedClientDetails = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              <div className="flex items-center gap-5">
-                <span className="text-sm font-medium">Name:</span>
-                <span>{client.fullName}</span>
-              </div>
-              <div className="flex items-center gap-5">
-                <span className="text-sm font-medium text-wrap">Email:</span>
-                <span>{client.email}</span>
-              </div>
-              <div className="flex items-center gap-5">
-                <span className="text-sm font-medium">Phone:</span>
-                <span>{client.phoneNumber}</span>
-              </div>
-              <div className="flex items-center gap-5">
-                <span className="text-sm font-medium">Address:</span>
-                <span>{client.address || "N/A"}</span>
-              </div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Name:</span><span>{client.fullName}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Email:</span><span>{client.email}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Phone:</span><span>{client.phoneNumber}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">IRDID:</span><span>{client.IRDID || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Office:</span><span>{client.IRDoffice || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Nature:</span><span>{client.clientNature || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Type:</span><span>{client.clientType || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of Tax Registration:</span><span>{client.dateOfTaxRegistration ? new Date(client.dateOfTaxRegistration).toLocaleDateString() : "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of VAT Registration:</span><span>{client.dateOfVatRegistration ? new Date(client.dateOfVatRegistration).toLocaleDateString() : "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Filling Period:</span><span>{client.fillingperiod || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Index File Number:</span><span>{client.indexFileNumber || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Password:</span><span>{client.irdPassword || "N/A"}</span></div>
+              <div className="flex items-center gap-5"><span className="text-sm font-medium">Registered Under:</span><span>{client.registeredUnder || "N/A"}</span></div>
             </CardContent>
             <CardFooter>
               <Button

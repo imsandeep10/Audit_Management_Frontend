@@ -6,6 +6,8 @@ export const useGetReportSummary = () => {
     queryKey: ["reportSummary"],
     queryFn: async () => {
       const res = await reportService.getReportSummary();
+   
+
       return res;
     },
   });
@@ -16,6 +18,7 @@ export const useGetMonthlyReport = () => {
     queryKey: ["monthlyReport"],
     queryFn: async () => {
       const res = await reportService.getMonthlyReport();
+     
       return res;
     },
   });

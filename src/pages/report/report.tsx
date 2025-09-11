@@ -1,3 +1,4 @@
+
 import { useGetTasks } from "../../api/useTask";
 import MaskebariRecords from "../../components/create-client/AmountSection";
 import ReportCards from "../../components/report/ReportCards";
@@ -7,12 +8,12 @@ import { ChartBarStacked } from "./chart-bar-stacked";
 
 const Report = () => {
 const {data:tasks,isLoading,isError}=useGetTasks()
-  // Use tasks from useGetTasks for card counts
+
   const allTasks = tasks?.tasks || [];
   const ITRCount = allTasks.filter((task: any) => task.taskType === "ITR").length;
   const EstimatedRevenueCount = allTasks.filter((task: any) => task.taskType === "Estimated Return").length;
-  const MonthlyCount = allTasks.filter((task: any) => task.taskType === "monthly").length;
-  const TrimesterCount = allTasks.filter((task: any) => task.taskType === "trimester").length;
+  const MonthlyCount = allTasks.filter((task: any) => task.taskType === "Monthly").length;
+  const TrimesterCount = allTasks.filter((task: any) => task.taskType === "Trimester").length;
 
   const cardData: { label: string; data: string }[] = [
     {
@@ -40,7 +41,7 @@ const {data:tasks,isLoading,isError}=useGetTasks()
 
   return (
     <div className="px-4 md:px-6 lg:px-8 py-4 overflow-y-auto h-screen">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {cardData.map((card, index) => (
           <ReportCards key={index} label={card.label} data={card.data} />
         ))}

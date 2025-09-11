@@ -8,21 +8,22 @@ export const customerPanSchema = z
   .optional()
   .refine((val) => !val || /^\d{9}$/.test(val), "PAN must be exactly 9 digits");
 
-// Phone number validation for both mobile and landline
-const phoneNumberSchema = z.union([
-  // Mobile numbers: 98XXXXXXXX or 97XXXXXXXX (10 digits)
-  z.number().min(9700000000, "Invalid phone number").max(9899999999, "Invalid phone number"),
-  // Landline numbers: typically 6-8 digits (without area code) or with leading 0
-  z.number().min(1000000, "Landline number too short").max(99999999, "Landline number too long")
-]).refine((val) => {
-  const str = val.toString();
-  // Mobile: starts with 97 or 98 and is 10 digits
-  if (str.startsWith('97') || str.startsWith('98')) {
-    return str.length === 10;
-  }
-  // Landline: 6-8 digits or starts with 0 followed by 6-8 digits
-  return str.length >= 6 && str.length <= 9;
-}, "Invalid phone number format");
+// Phone number validation for both mobile and landline (optional)
+const phoneNumberSchema = z
+  .string()
+  .trim()
+  .optional()
+  // Allow empty/undefined values
+  .refine((val) => !val || /^[0-9]+$/.test(val), "Invalid phone number format")
+  .refine((val) => {
+    if (!val) return true;
+    // Mobile: starts with 97 or 98 and is 10 digits
+    if (val.startsWith('97') || val.startsWith('98')) {
+      return val.length === 10;
+    }
+    // Landline: 6-9 digits (allow leading 0)
+    return val.length >= 6 && val.length <= 9;
+  }, "Invalid phone number format");
 
 // Sales bill schema
 export const salesBillSchema = z.object({
