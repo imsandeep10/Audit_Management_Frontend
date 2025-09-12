@@ -1,8 +1,10 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { AxiosProgressEvent } from "axios";
 import {
   deleteBill,
+  updateBill,
+  getBillById,
   type BillRecordData,
   type BillType,
   type DocumentType,
@@ -10,6 +12,7 @@ import {
 } from "./BillsService";
 import type { FileWithPreview } from "../types/uploadFile";
 import { uploadFiles, createBill } from "./BillsService";
+
 
 interface UseUploadFilesParams {
   onUploadStart: (billType: BillType) => void;
@@ -179,5 +182,70 @@ export const useDeleteBill = () => {
         description: errorMessage,
       });
     },
+  });
+};
+
+export const useUpdateBill = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      billId,
+      billData,
+      documentIds,
+      billType,
+    }: {
+      billId: string;
+      billData: BillRecordData;
+      documentIds: string[];
+      billType: BillType;
+    }) => {
+      if (!documentIds.length) {
+        throw new Error(`Please upload documents for ${billType} bill first`);
+      }
+
+      const result = await updateBill({
+        billId,
+        billData,
+        documentIds,
+        billType,
+      });
+
+      return {
+        type: billType,
+        bill: result.bill,
+        documentIds,
+      };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ['documents'] // This will refresh the bills data
+      });
+      
+      toast.success(`${result.type} bill updated successfully`, {
+        description: `Updated bill for ${result.bill.customerName}`,
+      });
+    },
+    onError: (error: unknown) => {
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message ||
+        (error as Error)?.message ||
+        "Unknown error occurred";
+
+      toast.error(`Failed to update bill. Please try again.`, {
+        description: errorMessage,
+      });
+    },
+  });
+};
+
+export const useGetBill = (billId: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['bill', billId],
+    queryFn: () => getBillById(billId),
+    enabled: enabled && !!billId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 };
