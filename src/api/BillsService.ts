@@ -43,10 +43,76 @@ export interface BillCreateResponse {
         customerBillNo?: string;
         customerPan?: string;
         documentIds: string[];
+        documents?: Array<{
+            _id: string;
+            filename: string;
+            originalName: string;
+            documentURL?: string;
+            size: number;
+            uploadDate: string;
+        }>;
         clientId: string;
         amount?: number;
         phoneNumber?: number;
         registrationType?: RegistrationType;
+    };
+    message?: string;
+}
+
+export interface BillUpdateResponse {
+    success: boolean;
+    bill: {
+        id: string;
+        billType: BillType;
+        documentType: DocumentType;
+        customerName: string;
+        billDate: string;
+        billNo?: string;
+        customerBillNo?: string;
+        customerPan?: string;
+        documentIds: string[];
+        documents?: Array<{
+            _id: string;
+            filename: string;
+            originalName: string;
+            documentURL?: string;
+            size: number;
+            uploadDate: string;
+        }>;
+        clientId: string;
+        amount?: number;
+        phoneNumber?: number;
+        registrationType?: RegistrationType;
+    };
+    message?: string;
+}
+
+export interface GetBillResponse {
+    success: boolean;
+    bill: {
+        _id: string;
+        billType: BillType;
+        documentType: DocumentType;
+        customerName: string;
+        billDate: string;
+        billNo?: string;
+        customerBillNo?: string;
+        customerPan?: string;
+        documentIds: Array<{
+            _id: string;
+            filename: string;
+            originalName: string;
+            documentURL?: string;
+            size: number;
+            uploadDate: string;
+        }>;
+        clientId: string;
+        amount?: number;
+        phoneNumber?: number;
+        registrationType?: RegistrationType;
+        fiscalYear?: string;
+        createdAt: string;
+        updatedAt: string;
     };
     message?: string;
 }
@@ -76,6 +142,13 @@ export interface CreateBillParams {
     documentIds: string[];
     billType: BillType;
     clientId: string;
+}
+
+export interface UpdateBillParams {
+    billId: string;
+    billData: BillRecordData;
+    documentIds: string[];
+    billType: BillType;
 }
 
 export interface DeleteBillResponse {
@@ -171,6 +244,51 @@ export async function createBill({
 
         return response.data;
     }
+
+export async function updateBill({
+    billId,
+    billData,
+    documentIds,
+    billType,
+}: UpdateBillParams): Promise<BillUpdateResponse> {
+    const payload: CreateBillPayload = {
+        billType,
+        documentType: billData.documentType,
+        customerName: billData.customerName,
+        billDate: billData.billDate,
+        customerPan: billData.customerPan || undefined,
+        documentIds,
+        amount: billData.amount || undefined,
+        phoneNumber: billData.phoneNumber || undefined,
+        registrationType: billData.registrationType || undefined,
+    };
+
+    if (billType === "sales" && "billNo" in billData) {
+        payload.billNo = billData.billNo;
+    } else if (billType === "purchase" && "customerBillNo" in billData) {
+        payload.customerBillNo = billData.customerBillNo;
+    }
+
+    const response = await axiosInstance.patch<BillUpdateResponse>(
+        `/client/bills/${billId}`,
+        payload,
+        {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }
+    );
+
+    return response.data;
+}
+
+export async function getBillById(billId: string): Promise<GetBillResponse> {
+    const response = await axiosInstance.get<GetBillResponse>(
+        `/client/bills/${billId}`
+    );
+
+    return response.data;
+}
 
   export const deleteBill = async (billId: string): Promise<DeleteBillResponse> => {
         const response = await axiosInstance.delete<DeleteBillResponse>(

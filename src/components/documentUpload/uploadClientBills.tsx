@@ -35,18 +35,95 @@ import {
   UI_CONSTANTS,
   VALIDATION_PATTERNS,
 } from "./billsConstants";
-import { useCreateBill, useUploadFiles } from "../../api/useBills";
+import {
+  useUploadFiles,
+  useCreateBill,
+  useUpdateBill,
+} from "../../api/useBills";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
 
 export const UploadClientBills = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const { clientId, clientName, userType, companyName } = location.state || {};
+  const { clientId, clientName, userType, companyName, billData, isUpdate } = location.state || {};
   const navigate = useNavigate();
 
   // Determine the actual user type - use passed userType or derive from auth context
   const actualUserType = userType || user?.role || 'admin';
+
+  // Convert backend documents to FileWithPreview format for pre-population
+  const convertDocumentsToFiles = (documents: any[]): FileWithPreview[] => {
+    return documents.map((doc) => {
+      // Create a simple object that implements the FileWithPreview interface
+      // This represents existing files already uploaded to the server
+      const mockFile: FileWithPreview & { isExisting?: boolean; documentId?: string } = {
+        id: doc._id || doc.id,
+        preview: doc.documentURL || `${process.env.REACT_APP_BACKEND_URL}/uploads/files/${doc.filename}`,
+        isExisting: true, // Flag to identify existing files
+        documentId: doc._id || doc.id,
+        size: doc.size || 0,
+        name: doc.originalName || doc.filename,
+        lastModified: Date.now(),
+        type: 'application/octet-stream',
+        webkitRelativePath: '',
+        // Mock File methods - these won't be called for existing files
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+        slice: () => new Blob(),
+        stream: () => new ReadableStream(),
+        text: () => Promise.resolve(''),
+        bytes: () => Promise.resolve(new Uint8Array(0)),
+      };
+
+      return mockFile;
+    });
+  };
+
+  // Prepare default values based on update or create mode
+  const getDefaultValues = (): BillsFormData => {
+    if (isUpdate && billData) {
+      const defaultValues = {
+        sales: DEFAULT_SALES_VALUES,
+        purchase: DEFAULT_PURCHASE_VALUES,
+      };
+
+      // Populate the form fields for the bill being updated
+      if (billData.billType === 'sales') {
+        defaultValues.sales = {
+          documentType: billData.documentType,
+          customerName: billData.customerName,
+          billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
+          billNo: billData.billNo || '',
+          customerPan: billData.customerPan || '',
+          amount: billData.amount || 0,
+          phoneNumber: billData.phoneNumber?.toString() || '',
+          registrationType: billData.registrationType,
+          files: convertDocumentsToFiles(billData.documents || []),
+          documentIds: billData.documentIds || [],
+        };
+      } else if (billData.billType === 'purchase') {
+        defaultValues.purchase = {
+          documentType: billData.documentType,
+          customerName: billData.customerName,
+          billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
+          customerBillNo: billData.customerBillNo || '',
+          customerPan: billData.customerPan || '',
+          amount: billData.amount || 0,
+          phoneNumber: billData.phoneNumber?.toString() || '',
+          registrationType: billData.registrationType,
+          files: convertDocumentsToFiles(billData.documents || []),
+          documentIds: billData.documentIds || [],
+        };
+      }
+
+      return defaultValues;
+    }
+
+    return {
+      sales: DEFAULT_SALES_VALUES,
+      purchase: DEFAULT_PURCHASE_VALUES,
+    };
+  };
 
   // State
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
@@ -61,10 +138,7 @@ export const UploadClientBills = () => {
   // Form
   const billsForm = useForm<BillsFormData>({
     resolver: zodResolver(billsSchema),
-    defaultValues: {
-      sales: DEFAULT_SALES_VALUES,
-      purchase: DEFAULT_PURCHASE_VALUES,
-    },
+    defaultValues: getDefaultValues(),
     mode: "onBlur",
   });
 
@@ -156,6 +230,8 @@ export const UploadClientBills = () => {
     },
   });
 
+  const updateBillMutation = useUpdateBill();
+
   // Customer suggestions hook
   const { data: customerSuggestions = [], isLoading: isLoadingCustomers } = useCustomerSuggestions(clientId);
 
@@ -205,7 +281,7 @@ export const UploadClientBills = () => {
     const isValid = await billsForm.trigger("sales");
     if (isValid) {
       const salesData = billsForm.getValues("sales");
-      const billData = {
+      const formBillData = {
         documentType: salesData.documentType,
         customerName: salesData.customerName,
         billDate: salesData.billDate,
@@ -215,12 +291,32 @@ export const UploadClientBills = () => {
         phoneNumber: salesData.phoneNumber ? Number(salesData.phoneNumber) : undefined,
         registrationType: salesData.registrationType,
       };
-      await createSalesBillMutation.mutateAsync({
-        billData,
-        documentIds: salesData.documentIds || [],
-        billType: "sales",
-        clientId,
-      });
+
+      if (isUpdate && billData) {
+        // Update existing bill
+        await updateBillMutation.mutateAsync({
+          billId: billData._id,
+          billData: formBillData,
+          documentIds: salesData.documentIds || [],
+          billType: "sales",
+        });
+        // Navigate back to document manager after successful update
+        navigate(`/clients/${clientId}/documents`, { 
+          state: { 
+            clientId, 
+            clientName, 
+            companyName 
+          } 
+        });
+      } else {
+        // Create new bill
+        await createSalesBillMutation.mutateAsync({
+          billData: formBillData,
+          documentIds: salesData.documentIds || [],
+          billType: "sales",
+          clientId,
+        });
+      }
     }
   };
 
@@ -228,7 +324,7 @@ export const UploadClientBills = () => {
     const isValid = await billsForm.trigger("purchase");
     if (isValid) {
       const purchaseData = billsForm.getValues("purchase");
-      const billData = {
+      const formBillData = {
         documentType: purchaseData.documentType,
         customerName: purchaseData.customerName,
         billDate: purchaseData.billDate,
@@ -238,12 +334,32 @@ export const UploadClientBills = () => {
         phoneNumber: purchaseData.phoneNumber ? Number(purchaseData.phoneNumber) : undefined,
         registrationType: purchaseData.registrationType,
       };
-      await createPurchaseBillMutation.mutateAsync({
-        billData,
-        documentIds: purchaseData.documentIds || [],
-        billType: "purchase",
-        clientId,
-      });
+
+      if (isUpdate && billData) {
+        // Update existing bill
+        await updateBillMutation.mutateAsync({
+          billId: billData._id,
+          billData: formBillData,
+          documentIds: purchaseData.documentIds || [],
+          billType: "purchase",
+        });
+        // Navigate back to document manager after successful update
+        navigate('/document-manager', { 
+          state: { 
+            clientId, 
+            clientName, 
+            companyName 
+          } 
+        });
+      } else {
+        // Create new bill
+        await createPurchaseBillMutation.mutateAsync({
+          billData: formBillData,
+          documentIds: purchaseData.documentIds || [],
+          billType: "purchase",
+          clientId,
+        });
+      }
     }
   };
 
@@ -264,7 +380,10 @@ export const UploadClientBills = () => {
       <div className="flex justify-between items-center font-poppins px-1">
         <div className="mb-5">
           <h1 className="text-2xl font-bold mb-1 text-center border-b-2">
-            Upload Bills for {clientName || clientId}
+            {isUpdate 
+              ? `Update ${billData?.billType === 'sales' ? 'Sales' : 'Purchase'} Bill${billData?.billType === 'sales' ? ` - ${billData?.billNo}` : ` - ${billData?.customerBillNo}`}` 
+              : `Upload Bills for ${clientName || clientId}`
+            }
           </h1>
           <p className="text-gray-800 space-x-3 font-semibold">
             <span className="text-gray-600">Company Name:</span> {companyName || " Company Name Not Provided"}
@@ -292,6 +411,7 @@ export const UploadClientBills = () => {
           >
             View Bills
           </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -317,18 +437,19 @@ export const UploadClientBills = () => {
       </div>
 
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Sales Section */}
-          <div className="space-y-4 p-6 border-2 border-gray-200 rounded-lg bg-gray-50">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                Sales Bill
-                {isUploading.sales && (
-                  <span className="ml-2 text-sm text-blue-600 font-normal">
-                    (Uploading...)
-                  </span>
-                )}
-              </h3>
+        <div className={`grid gap-6 ${isUpdate ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+          {/* Sales Section - Show if not updating or updating a sales bill */}
+          {(!isUpdate || (isUpdate && billData?.billType === 'sales')) && (
+            <div className="space-y-4 p-6 border-2 border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
+                  {isUpdate ? 'Update Sales Bill' : 'Sales Bill'}
+                  {isUploading.sales && (
+                    <span className="ml-2 text-sm text-blue-600 font-normal">
+                      (Uploading...)
+                    </span>
+                  )}
+                </h3>
             </div>
 
             {/* Document Type */}
@@ -519,31 +640,33 @@ export const UploadClientBills = () => {
               />
             </div>
 
-            {/* Create Sales Bill Button */}
+            {/* Sales Bill Button */}
             <div className="pt-4 border-t border-gray-200">
               <Button
                 type="button"
                 size="sm"
                 onClick={handleSalesBillSubmit}
                 disabled={
-                  createSalesBillMutation.isPending ||
+                  (isUpdate ? updateBillMutation.isPending : createSalesBillMutation.isPending) ||
                   isUploading.sales ||
                   getSalesDocumentIds().length === 0
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
-                {createSalesBillMutation.isPending
-                  ? "Creating..."
-                  : "Create Sales Bill"}
+                {(isUpdate ? updateBillMutation.isPending : createSalesBillMutation.isPending)
+                  ? (isUpdate ? "Updating..." : "Creating...")
+                  : (isUpdate ? "Update Sales Bill" : "Create Sales Bill")}
               </Button>
             </div>
           </div>
+          )}
 
-          {/* Purchase Section */}
+          {/* Purchase Section - Show if not updating or updating a purchase bill */}
+          {(!isUpdate || (isUpdate && billData?.billType === 'purchase')) && (
           <div className="space-y-4 p-6 border-2 border-gray-200 rounded-lg bg-gray-50">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
-                Purchase Bill
+                {isUpdate ? 'Update Purchase Bill' : 'Purchase Bill'}
                 {isUploading.purchase && (
                   <span className="ml-2 text-sm text-blue-600 font-normal">
                     (Uploading...)
@@ -742,25 +865,26 @@ export const UploadClientBills = () => {
               />
             </div>
 
-            {/* Create Purchase Bill Button */}
+            {/* Purchase Bill Button */}
             <div className="pt-4 border-t border-gray-200">
               <Button
                 type="button"
                 size="sm"
                 onClick={handlePurchaseBillSubmit}
                 disabled={
-                  createPurchaseBillMutation.isPending ||
+                  (isUpdate ? updateBillMutation.isPending : createPurchaseBillMutation.isPending) ||
                   isUploading.purchase ||
                   getPurchaseDocumentIds().length === 0
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
-                {createPurchaseBillMutation.isPending
-                  ? "Creating..."
-                  : "Create Purchase Bill"}
+                {(isUpdate ? updateBillMutation.isPending : createPurchaseBillMutation.isPending)
+                  ? (isUpdate ? "Updating..." : "Creating...")
+                  : (isUpdate ? "Update Purchase Bill" : "Create Purchase Bill")}
               </Button>
             </div>
           </div>
+          )}
         </div>
       </div>
 

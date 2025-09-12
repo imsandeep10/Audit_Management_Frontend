@@ -40,6 +40,7 @@ import {
   FileArchive,
   FileSpreadsheet,
   Calendar,
+  Edit,
 } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import { formatBytes } from '../../utils/date-format';
@@ -191,6 +192,20 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
     } else {
       toast.error('No documents available for this bill');
     }
+  };
+
+  const handleBillUpdate = (bill: any) => {
+    // Navigate to bill update page with bill data
+    navigate('/upload-client-bills/update', {
+      state: {
+        clientId: resolvedClientId,
+        clientName: resolvedClientName,
+        companyName: resolvedCompanyName,
+        userType: actualUserType,
+        billData: bill,
+        isUpdate: true
+      }
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -400,6 +415,16 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                           </DropdownMenuItem>
                           {userType === 'admin' && (
                             <DropdownMenuItem
+                              key="update-sales"
+                              onClick={() => handleBillUpdate(bill)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Update
+                            </DropdownMenuItem>
+                          )}
+                          {userType === 'admin' && (
+                            <DropdownMenuItem
+                              key="delete-sales"
                               className="text-red-600"
                               onClick={() => handleBillDelete(bill.id, { billType: bill.billType, customerName: bill.customerName })}
                             >
@@ -525,6 +550,16 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                           </DropdownMenuItem>
                           {userType === 'admin' && (
                             <DropdownMenuItem
+                              key="update-purchase"
+                              onClick={() => handleBillUpdate(bill)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Update
+                            </DropdownMenuItem>
+                          )}
+                          {userType === 'admin' && (
+                            <DropdownMenuItem
+                              key="delete-purchase"
                               className="text-red-600"
                               onClick={() => handleBillDelete(bill.id, { billType: bill.billType, customerName: bill.customerName })}
                             >
