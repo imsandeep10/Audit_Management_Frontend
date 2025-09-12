@@ -141,6 +141,8 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
     billsPerPage
   });
 
+  console.log(data)
+
   const deleteDocumentMutation = useDeleteDocument(resolvedClientId);
   const deleteBillMutation = useDeleteBill();
 
