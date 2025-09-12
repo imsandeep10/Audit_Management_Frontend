@@ -360,8 +360,8 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSalesBills.map((bill: any) => (
-                  <TableRow key={bill.id}>
+                {filteredSalesBills.map((bill: any, index: number) => (
+                  <TableRow key={bill.id || bill._id || `sales-bill-${index}`}>
                     <TableCell className="font-medium">{bill.billNo}</TableCell>
                     <TableCell>{bill.customerName}</TableCell>
                     <TableCell>{bill.customerPan || 'N/A'}</TableCell>
@@ -494,8 +494,8 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPurchaseBills.map((bill: any) => (
-                  <TableRow key={bill.id}>
+                {filteredPurchaseBills.map((bill: any, index: number) => (
+                  <TableRow key={bill.id || bill._id || `purchase-bill-${index}`}>
                     <TableCell className="font-medium">{bill.customerBillNo}</TableCell>
                     <TableCell>{bill.customerName}</TableCell>
                     <TableCell>{bill.customerPan || 'N/A'}</TableCell>
@@ -1072,8 +1072,8 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                     </TableRow>
                   ))
                 ) : data?.documents?.length ? (
-                  data.documents.map((document) => (
-                    <TableRow key={document._id || document.id} onClick={() => handlePreview(document)}>
+                  data.documents.map((document, index) => (
+                    <TableRow key={document._id || document.id || `document-${index}`} onClick={() => handlePreview(document)}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <File className="h-4 w-4 text-muted-foreground" />

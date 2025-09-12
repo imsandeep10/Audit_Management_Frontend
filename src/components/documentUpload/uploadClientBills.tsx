@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -25,9 +26,10 @@ import type {
 } from "../../api/BillsService";
 import {
   billsSchema,
-  type BillsFormData,
   type DocumentType as SchemaDocumentType,
 } from "./billsSchema";
+import { z } from "zod";
+type BillsFormData = z.infer<typeof billsSchema>;
 import {
   DEFAULT_PURCHASE_VALUES,
   DEFAULT_SALES_VALUES,
@@ -49,10 +51,8 @@ export const UploadClientBills = () => {
   const { clientId, clientName, userType, companyName, billData, isUpdate } = location.state || {};
   const navigate = useNavigate();
 
-  // Determine the actual user type - use passed userType or derive from auth context
   const actualUserType = userType || user?.role || 'admin';
 
-  // Convert backend documents to FileWithPreview format for pre-population
   const convertDocumentsToFiles = (documents: any[]): FileWithPreview[] => {
     return documents.map((doc) => {
       // Create a simple object that implements the FileWithPreview interface
@@ -137,7 +137,7 @@ export const UploadClientBills = () => {
 
   // Form
   const billsForm = useForm<BillsFormData>({
-    resolver: zodResolver(billsSchema),
+    resolver: zodResolver(billsSchema) as any,
     defaultValues: getDefaultValues(),
     mode: "onBlur",
   });
@@ -217,7 +217,7 @@ export const UploadClientBills = () => {
 
   const createSalesBillMutation = useCreateBill({
     onSuccess: () => {
-      toast.success("sales bill created");
+      toast.success("Sales bill created");
       window.location.reload();
     },
   });
@@ -226,7 +226,6 @@ export const UploadClientBills = () => {
     onSuccess: () => {
       toast.success("Purchase Bill created");
       window.location.reload();
-
     },
   });
 
@@ -361,15 +360,6 @@ export const UploadClientBills = () => {
         });
       }
     }
-  };
-
-  // Helper functions
-  const getSalesDocumentIds = () => {
-    return billsForm.watch("sales.documentIds") || [];
-  };
-
-  const getPurchaseDocumentIds = () => {
-    return billsForm.watch("purchase.documentIds") || [];
   };
 
   return (
@@ -648,8 +638,8 @@ export const UploadClientBills = () => {
                 onClick={handleSalesBillSubmit}
                 disabled={
                   (isUpdate ? updateBillMutation.isPending : createSalesBillMutation.isPending) ||
-                  isUploading.sales ||
-                  getSalesDocumentIds().length === 0
+                  isUploading.sales
+                  // File upload is now optional, so do not disable if no files
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
@@ -874,7 +864,7 @@ export const UploadClientBills = () => {
                 disabled={
                   (isUpdate ? updateBillMutation.isPending : createPurchaseBillMutation.isPending) ||
                   isUploading.purchase ||
-                  getPurchaseDocumentIds().length === 0
+                  false
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
