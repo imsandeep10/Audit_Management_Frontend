@@ -46,6 +46,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { Profile } from "./components/profile/UserProfile";
 import Assignees from "./pages/assignes/Assignees";
 import { UploadClientBills } from "./components/documentUpload/uploadClientBills";
+import { UpdateClientBills } from "./components/documentUpload/updateClientBills";
 import SplashScreen from "./components/common/SplashScreen";
 
 
@@ -104,6 +105,10 @@ const router = createBrowserRouter([
       {
         path: "clients/:clientId/upload-client-bills",
         element: <UploadClientBills />,
+      },
+      {
+        path: "upload-client-bills/update",
+        element: <UpdateClientBills />,
       },
       { path: "clients/:id/documents", element: <ClientDocumentsPage /> },
       { path: "all/documents", element: <DocumentsPage /> },

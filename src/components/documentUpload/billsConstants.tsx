@@ -1,5 +1,6 @@
 import type { BillType } from "../../api/BillsService";
 import type { DocumentType, RegistrationType } from "./billsSchema";
+import type { FileWithPreview } from "../../types/uploadFile";
 
 // Document type options
 export const DOCUMENT_TYPE_OPTIONS = [
@@ -26,7 +27,9 @@ export const DEFAULT_SALES_VALUES = {
   billDate: "",
   billNo: "",
   customerPan: "",
-  files: [],
+  amount: 0,
+  phoneNumber: "",
+  files: [] as FileWithPreview[],
   documentIds: [],
   registrationType: "pan" as RegistrationType,
 };
@@ -37,7 +40,9 @@ export const DEFAULT_PURCHASE_VALUES = {
   billDate: "",
   customerBillNo: "",
   customerPan: "",
-  files: [],
+  amount: 0,
+  phoneNumber: "",
+  files: [] as FileWithPreview[],
   documentIds: [],
   registrationType: "pan" as RegistrationType,
 };

@@ -16,16 +16,21 @@ const AssignmentProgress = () => {
     
     return data
       .map(employee => {
+        // Safely handle clients array - provide fallback for undefined/null
+        const clients = employee.clients || [];
+        
         // Calculate average progress across all clients for this employee
-        const avgProgress = employee.clients.length > 0
-          ? employee.clients.reduce((sum, client) => sum + client.progressPercentage, 0)
+        const avgProgress = clients.length > 0
+          ? clients.reduce((sum, client) => sum + client.progressPercentage, 0)
           : 0;
         
         return {
           ...employee,
+          clients, // Use the safe clients array
           avgProgress
         };
       })
+      .filter(employee => employee.clients && employee.clients.length > 0) // Only show employees with clients
       .sort((a, b) => b.avgProgress - a.avgProgress) 
       .slice(0, 5); 
   };
@@ -66,28 +71,56 @@ const AssignmentProgress = () => {
   return (
     <Card className="card-custom">
       <CardContent>
-        <h3 className="text-2xl font-semibold"> Assignment Progress</h3>
-        {topEmployees.map((employee) => (
-          employee.clients.slice(0, 1).map((client) => ( // Only show first client for each employee
-            <div className="flex flex-col gap-3 pt-3" key={`${employee.employeeId}-${client.clientId}`}>
-              <div className="flex flex-col">
-                <div className="flex flex-row justify-between text-lg">
-                  <span className="font-semibold">{employee.employeeName}</span>
-                  <span>{client.progressPercentage}%</span>
+        <h3 className="text-2xl font-semibold">Assignment Progress</h3>
+        {topEmployees.length === 0 ? (
+          <div className="flex items-center justify-center py-8">
+            <p className="text-gray-500">No assignment data available</p>
+          </div>
+        ) : (
+          topEmployees.map((employee) => {
+            // Safely get the first client or show a fallback
+            const firstClient = employee.clients && employee.clients.length > 0 ? employee.clients[0] : null;
+            
+            if (!firstClient) {
+              return (
+                <div className="flex flex-col gap-3 pt-3" key={employee.employeeId}>
+                  <div className="flex flex-col">
+                    <div className="flex flex-row justify-between text-lg">
+                      <span className="font-semibold">{employee.employeeName}</span>
+                      <span>0%</span>
+                    </div>
+                    <div className="text-[#484747]">
+                      <p className="text-sm">No tasks assigned</p>
+                    </div>
+                    <div className="pt-2">
+                      <Progress value={0} />
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[#484747]">
-                  <p className="text-lg">Client: {client.clientName}</p>
-                  <p className="text-sm">
-                    Progress: {client.completedTasks}/{client.totalTasks} tasks completed
-                  </p>
-                </div>
-                <div className="pt-2">
-                  <Progress value={client.progressPercentage} />
+              );
+            }
+            
+            return (
+              <div className="flex flex-col gap-3 pt-3" key={`${employee.employeeId}-${firstClient.clientId}`}>
+                <div className="flex flex-col">
+                  <div className="flex flex-row justify-between text-lg">
+                    <span className="font-semibold">{employee.employeeName}</span>
+                    <span>{firstClient.progressPercentage}%</span>
+                  </div>
+                  <div className="text-[#484747]">
+                    <p className="text-lg">Client: {firstClient.clientName}</p>
+                    <p className="text-sm">
+                      Progress: {firstClient.completedTasks}/{firstClient.totalTasks} tasks completed
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <Progress value={firstClient.progressPercentage} />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        ))}
+            );
+          })
+        )}
       </CardContent>
     </Card>
   );
