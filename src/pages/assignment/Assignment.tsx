@@ -14,7 +14,7 @@ import {
 } from "../../components/ui/dialog";
 import { LiaSlidersHSolid } from "react-icons/lia";
 import { AddNewTask } from "../../card/AddNewtask";
-import { useState, type JSX } from "react";
+import { useState, useEffect, useRef, type JSX } from "react";
 import { TaskCard } from "../../card/TaskCard";
 import { useGetTasks } from "../../api/useTask";
 import { useGetAllClients } from "../../api/useclient";
@@ -28,6 +28,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { TaskCardSkeleton } from "../../components/TaskCardSekelton";
+import { useSearchParams } from "react-router-dom";
 
 const Assignment: React.FC = () => {
   const [filterOption, setFilterOption] = useState<FilterOption>("default");
@@ -38,11 +39,54 @@ const Assignment: React.FC = () => {
   const [currentStatus, setCurrentStatus] = useState<string | undefined>(
     undefined
   );
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const taskRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const { data: tasksResponse, isLoading } = useGetTasks(currentStatus);
   const tasks = tasksResponse?.tasks || [];
   const { data: clientsResponse } = useGetAllClients();
   const clients = clientsResponse?.data?.clients || []; // Assuming clients are included in the response
+
+  // Handle task highlighting from URL parameter
+  useEffect(() => {
+    const highlightTaskParam = searchParams.get('highlightTask');
+    if (highlightTaskParam && tasks.length > 0) {
+      setHighlightedTaskId(highlightTaskParam);
+      
+      // Scroll to the task after a short delay to ensure rendering
+      const timer = setTimeout(() => {
+        const taskElement = taskRefs.current[highlightTaskParam];
+        if (taskElement) {
+          taskElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }, 100);
+
+      // Remove highlighting after 3 seconds
+      const highlightTimer = setTimeout(() => {
+        setHighlightedTaskId(null);
+        // Clean up URL parameter
+        setSearchParams(prev => {
+          const newParams = new URLSearchParams(prev);
+          newParams.delete('highlightTask');
+          return newParams;
+        });
+      }, 3000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(highlightTimer);
+      };
+    }
+  }, [searchParams, tasks, setSearchParams]);
+
+  // Function to set task ref
+  const setTaskRef = (taskId: string) => (el: HTMLDivElement | null) => {
+    taskRefs.current[taskId] = el;
+  };
 
 
   type AssigneeObject = {
@@ -101,18 +145,27 @@ const Assignment: React.FC = () => {
   const renderTasks = (status: string, color: string): JSX.Element[] => {
     const sortedTasks = getFilteredTasks(status);
     return sortedTasks.map((task: Task) => (
-      <TaskCard
+      <div
         key={task._id}
-        {...task}
-        assignedTo={normalizeAssignedTo(task.assignedTo as unknown)}
-        clients={clients} // Pass clients array for lookup
-        color={color}
-        progress={
-          task.subTasks?.filter((subTask) => subTask.status === "completed")
-            .length
-        }
-        total={task.subTasks?.length}
-      />
+        ref={setTaskRef(task._id)}
+        className={`transition-all duration-500 ${
+          highlightedTaskId === task._id 
+            ? 'ring-4 ring-blue-500 ring-opacity-75 shadow-lg scale-105' 
+            : ''
+        }`}
+      >
+        <TaskCard
+          {...task}
+          assignedTo={normalizeAssignedTo(task.assignedTo as unknown)}
+          clients={clients} // Pass clients array for lookup
+          color={color}
+          progress={
+            task.subTasks?.filter((subTask) => subTask.status === "completed")
+              .length
+          }
+          total={task.subTasks?.length}
+        />
+      </div>
     ));
   };
 

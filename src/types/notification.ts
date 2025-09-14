@@ -27,7 +27,8 @@ export type Notification = {
     | 'document_uploaded' 
     | 'message_received' 
     | 'system_alert'
-    | 'task_created';
+    | 'task_created'
+    | 'task_note_added';
   title: string;
   message: string;
   isRead: boolean;
@@ -35,5 +36,18 @@ export type Notification = {
   updatedAt?: Date | string;
   relatedEntity?: any; 
   relatedEntityModel?: string;
+  metadata?: {
+    taskId?: string;
+    taskTitle?: string;
+    subtaskId?: string;
+    subtaskTitle?: string;
+    noteId?: string;
+    noteContent?: string;
+    authorName?: string;
+    messageType?: string;
+    clientName?: string;
+    action?: string;
+    [key: string]: any;
+  };
   __v?: number;
 };

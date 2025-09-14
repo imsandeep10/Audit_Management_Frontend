@@ -14,6 +14,7 @@ import { Badge } from "../../components/ui/badge";
 import CopyComponent from "../../components/CopyComponent";
 import EyeComponent from "../../components/EyeComponent";
 import TasksTable from "./userTaskTable";
+import RelatedTasks from "../../components/client/RelatedTasks";
 
 const UserDetailPage = () => {
   const { userId } = useParams();
@@ -290,6 +291,9 @@ const UserDetailPage = () => {
             </CardContent>
           </Card>
         )}
+        <div className="max-w-7xl mb-10 pb-10">
+          <RelatedTasks clientId={data?.user?.client?._id || clientId} />
+        </div>
       </div>
     </>
   );

@@ -63,6 +63,23 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
 
     switch (notification.relatedEntityModel) {
       case 'Task':
+        // Handle task note notifications with specific routing and note highlighting
+        if (notification.type === 'task_note_added' && notification.metadata?.taskId) {
+          const noteId = notification.metadata.noteId;
+          if (user?.role === 'admin') {
+            return noteId 
+              ? `/assignment/task/${notification.metadata.taskId}?highlightNote=${noteId}`
+              : `/assignment/task/${notification.metadata.taskId}`;
+          }
+          if (user?.role === 'employee') {
+            return noteId 
+              ? `/employee/task/${notification.metadata.taskId}?highlightNote=${noteId}`
+              : `/employee/task/${notification.metadata.taskId}`;
+          }
+          console.log('task note link', noteId);
+        }
+        
+        // Default task routing for other task notifications
         if (user?.role === 'admin') {
           return '/assignment';
         }

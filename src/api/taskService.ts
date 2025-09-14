@@ -75,6 +75,19 @@ export const taskService = {
       throw error;
     }
   },
+  async getTasksByClientId(clientId: string): Promise<TasksListResponse> {
+    try {
+      const response = await axiosInstance.get<TasksListResponse>(
+        `/task/client/${clientId}/tasks`
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        throw error;
+      }
+      throw error;
+    }
+  },
 };
 
 
