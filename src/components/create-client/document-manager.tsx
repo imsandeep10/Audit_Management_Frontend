@@ -126,6 +126,11 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
   const downloadDocumentsZip = useDownloadDocumentsZip();
   const downloadBillsExcel = useDownloadBillsExcel();
 
+  // Helper function to get the correct bill ID
+  const getBillId = (bill: any): string => {
+    return bill._id || bill.id || '';
+  };
+
   const { data, isLoading, isError, error } = useClientDocuments(resolvedClientId, {
     page,
     limit,
@@ -142,15 +147,14 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
     billsPerPage
   });
 
-  console.log(data)
 
   const deleteDocumentMutation = useDeleteDocument(resolvedClientId);
   const deleteBillMutation = useDeleteBill();
 
-  const handleDelete = async (documentId: string, documentName: string) => {
+  const handleDelete = async (documentId: string) => {
     try {
       await deleteDocumentMutation.mutateAsync(documentId);
-      toast.success(`Document "${documentName}" deleted successfully.`);
+      toast.success(`Document  deleted successfully.`);
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err.message || 'Unknown error';
       const isAccessError = errorMessage.includes('assigned') || errorMessage.includes('access') || err?.response?.status === 403;
@@ -165,8 +169,34 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
 
   const handleBillDelete = async (billId: string, billInfo: { billType: string; customerName: string }) => {
     try {
-      await deleteBillMutation.mutateAsync(billId);
-      toast.success(`${billInfo.billType.charAt(0).toUpperCase() + billInfo.billType.slice(1)} bill for "${billInfo.customerName}" deleted successfully.`);
+      // Validate bill ID before sending to API
+      if (!billId || billId === 'undefined' || billId === 'null') {
+        toast.error('Invalid bill ID. Cannot delete bill.');
+        console.error('Attempted to delete bill with invalid ID:', billId);
+        return;
+      }
+      
+      const response = await deleteBillMutation.mutateAsync(billId);
+      
+      // Extract deletion details from response
+      const deletionData = response?.data as any;
+      let successMessage = `${billInfo.billType.charAt(0).toUpperCase() + billInfo.billType.slice(1)} bill for "${billInfo.customerName}" deleted successfully.`;
+      
+      // Add details about documents if available
+      if (deletionData?.deletedDocuments !== undefined || deletionData?.skippedDocuments !== undefined) {
+        const docDetails = [];
+        if (deletionData.deletedDocuments > 0) {
+          docDetails.push(`${deletionData.deletedDocuments} document(s) deleted`);
+        }
+        if (deletionData.skippedDocuments > 0) {
+          docDetails.push(`${deletionData.skippedDocuments} document(s) preserved (used by other bills)`);
+        }
+        if (docDetails.length > 0) {
+          successMessage += ` (${docDetails.join(', ')})`;
+        }
+      }
+      
+      toast.success(successMessage);
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err.message || 'Unknown error';
       const isAccessError = errorMessage.includes('assigned') || errorMessage.includes('access') || err?.response?.status === 403;
@@ -361,7 +391,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               </TableHeader>
               <TableBody>
                 {filteredSalesBills.map((bill: any, index: number) => (
-                  <TableRow key={bill.id || bill._id || `sales-bill-${index}`}>
+                  <TableRow key={getBillId(bill) || `sales-bill-${index}`}>
                     <TableCell className="font-medium">{bill.billNo}</TableCell>
                     <TableCell>{bill.customerName}</TableCell>
                     <TableCell>{bill.customerPan || 'N/A'}</TableCell>
@@ -418,7 +448,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                           {userType === 'admin' && (
                             <DropdownMenuItem
                               key="update-sales"
-                              onClick={() => handleBillUpdate(bill)}
+                              onClick={() => handleBillUpdate({...bill, id: getBillId(bill)})}
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Update
@@ -428,7 +458,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                             <DropdownMenuItem
                               key="delete-sales"
                               className="text-red-600"
-                              onClick={() => handleBillDelete(bill.id, { billType: bill.billType, customerName: bill.customerName })}
+                              onClick={() => handleBillDelete(getBillId(bill), { billType: bill.billType, customerName: bill.customerName })}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
@@ -495,7 +525,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
               </TableHeader>
               <TableBody>
                 {filteredPurchaseBills.map((bill: any, index: number) => (
-                  <TableRow key={bill.id || bill._id || `purchase-bill-${index}`}>
+                  <TableRow key={getBillId(bill) || `purchase-bill-${index}`}>
                     <TableCell className="font-medium">{bill.customerBillNo}</TableCell>
                     <TableCell>{bill.customerName}</TableCell>
                     <TableCell>{bill.customerPan || 'N/A'}</TableCell>
@@ -553,7 +583,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                           {userType === 'admin' && (
                             <DropdownMenuItem
                               key="update-purchase"
-                              onClick={() => handleBillUpdate(bill)}
+                              onClick={() => handleBillUpdate({...bill, id: getBillId(bill)})}
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Update
@@ -563,7 +593,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                             <DropdownMenuItem
                               key="delete-purchase"
                               className="text-red-600"
-                              onClick={() => handleBillDelete(bill.id, { billType: bill.billType, customerName: bill.customerName })}
+                              onClick={() => handleBillDelete(getBillId(bill), { billType: bill.billType, customerName: bill.customerName })}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
@@ -922,32 +952,6 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                   </SelectContent>
                 </Select>
 
-                {/* <Select
-                  value={`${sortBy}:${sortOrder}`}
-                  onValueChange={(value) => {
-                    const [newSortBy, newSortOrder] = value.split(':');
-                    setSortBy(newSortBy);
-                    setSortOrder(newSortOrder);
-                    setPage(1);
-                    setSalesPage(1);
-                    setPurchasePage(1);
-                  }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <div className="flex items-center gap-2">
-                      <SelectValue placeholder="Sort by" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="billDate:desc">Latest Bills</SelectItem>
-                    <SelectItem value="billDate:asc">Earliest Bills</SelectItem>
-                    <SelectItem value="amount:desc">Highest Amount</SelectItem>
-                    <SelectItem value="amount:asc">Lowest Amount</SelectItem>
-                    <SelectItem value="customerName:asc">Customer (A-Z)</SelectItem>
-                    <SelectItem value="customerName:desc">Customer (Z-A)</SelectItem>
-                  </SelectContent>
-                </Select> */}
-
                 {(searchTerm || documentTypeFilter !== 'all' || billDocumentTypeFilter !== 'all' || nepaliMonthFilter !== 'all' || fiscalYearFilter !== getCurrentNepalieFiscalYear()) && (
                   <Button
                     variant="ghost"
@@ -1122,20 +1126,27 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => handlePreview(document)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePreview(document);
+                              }}
                             >
                               <Eye className="mr-2 h-4 w-4" />
                               Preview
                             </DropdownMenuItem>
-                            {userName && userType === 'admin' && (
+                          
                               <DropdownMenuItem
                                 className="text-red-600"
-                                onClick={() => handleDelete(document.id, document.originalName)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(document.id || document._id || '');
+                                }}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
                               </DropdownMenuItem>
-                            )}
+                            
+
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

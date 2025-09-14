@@ -82,7 +82,7 @@ export default function SigninForm() {
                     <div className="relative">
                       <Input
                         type="email"
-                        placeholder=""
+                        placeholder="Enter Your Email"
                         {...field}
                         className="rounded-md border-gray-300 pr-10"
                       />
@@ -112,7 +112,7 @@ export default function SigninForm() {
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="enter password"
+                        placeholder="Enter Your Password"
                         {...field}
                         className="rounded-md border-gray-300"
                       />

@@ -34,7 +34,6 @@ const chartConfig = {
 } satisfies ChartConfig;
 export function ChartBarStacked() {
   const { data } = useGetMonthlyUserReport();
-  console.log(data,"data")
   const payload = data?.data as any;
   const apiData = Array.isArray(payload?.data) ? payload.data : [];
   const monthLabels = [
