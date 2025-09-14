@@ -6,6 +6,7 @@ import {
   useUpdateSubTaskStatus,
 } from "../../hooks/useEmployeeTask";
 import { useAuth } from "../../contexts/AuthContext";
+import { taskService } from "../../api/taskService";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,10 @@ import AmountDialog from "./AmountDialog";
 import type { TaskWithDetails as LocalTaskWithDetails } from "./AmountDialog";
 import TaskCard from "./TaskCard";
 import CompletedTaskCard from "./CompletedTaskCard";
+import ITREstimatedDialog, { 
+  type ITREstimatedData, 
+  type TaskWithITRData 
+} from "./ITREstimatedDialog";
 
 import { AddNewEmployeeTask } from "./AddTasksByEmployee";
 
@@ -37,6 +42,10 @@ const EmployeeAssignedTasks = () => {
   const [amountDialogOpen, setAmountDialogOpen] = useState(false);
   const [selectedTaskForAmount, setSelectedTaskForAmount] = useState<LocalTaskWithDetails | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
+  
+  // ITR/Estimated Return dialog state
+  const [itrEstimatedDialogOpen, setItrEstimatedDialogOpen] = useState(false);
+  const [selectedTaskForITREstimated, setSelectedTaskForITREstimated] = useState<TaskWithITRData | null>(null);
   
   // Dialog states for notifications
   const [selectedTaskForDialog, setSelectedTaskForDialog] = useState<TaskWithDetails | null>(null);
@@ -127,22 +136,39 @@ const EmployeeAssignedTasks = () => {
 
   const handleTaskStatusChange = async (taskId: string, newStatus: string) => {
     try {
-      // Check if task is being marked as completed and is monthly/trimester type
+      // Check if task is being marked as completed
       if (newStatus === "completed") {
         const task = tasks?.find((t: TaskWithDetails) => t._id === taskId);
         const taskType = (task as any)?.taskType?.toLowerCase();
+        
+        // Handle ITR and Estimated Return tasks
+        if (taskType === "itr" || taskType === "estimated return") {
+          setSelectedTaskForITREstimated({
+            _id: task!._id,
+            taskTitle: task!.taskTitle,
+            taskType: (task as any)?.taskType || "",
+            description: task!.description,
+            client: task!.client,
+            subTasks: task!.subTasks,
+          });
+          setItrEstimatedDialogOpen(true);
+          return;
+        }
+        
+        // Handle Monthly and Trimester tasks (existing logic)
         if (taskType === "monthly" || taskType === "trimester") {
-          // Map to local TaskWithDetails shape for AmountDialog
           setSelectedTaskForAmount({
             ...task!,
-            taskType: (task as any)?.taskType || "", // fallback if missing
-            amounts: [], // Always empty since we don't want to edit existing values
+            taskType: (task as any)?.taskType || "",
+            amounts: [],
             client: Array.isArray(task?.client) ? task?.client : [],
           });
           setAmountDialogOpen(true);
           return;
         }
       }
+      
+      // For other task types, update status directly
       await updateStatus({ taskId, status: newStatus });
     } catch (err) {
       console.error("Failed to update task status:", err);
@@ -169,6 +195,29 @@ const EmployeeAssignedTasks = () => {
         setAmountDialogOpen(false);
       } catch (err) {
         console.error("Failed to save amounts:", err);
+      }
+    }
+  };
+
+  const handleSaveITREstimatedData = async (data: ITREstimatedData) => {
+    if (selectedTaskForITREstimated) {
+      try {
+        // Call the new API to update task with ITR/Estimated data
+        await taskService.updateTaskWithITREstimatedData(
+          selectedTaskForITREstimated._id, 
+          data
+        );
+        
+        // Refresh the tasks data
+        await refetch();
+        
+        // Close dialog and reset state
+        setSelectedTaskForITREstimated(null);
+        setItrEstimatedDialogOpen(false);
+      } catch (err) {
+        console.error("Failed to save ITR/Estimated data:", err);
+        // Re-throw the error so the dialog can handle it
+        throw err;
       }
     }
   };
@@ -371,6 +420,19 @@ const EmployeeAssignedTasks = () => {
               }}
               onSave={handleSaveAmount}
               task={selectedTaskForAmount}
+            />
+          )}
+
+          {/* ITR/Estimated Return Dialog */}
+          {selectedTaskForITREstimated && (
+            <ITREstimatedDialog
+              isOpen={itrEstimatedDialogOpen}
+              onClose={() => {
+                setItrEstimatedDialogOpen(false);
+                setSelectedTaskForITREstimated(null);
+              }}
+              onSave={handleSaveITREstimatedData}
+              task={selectedTaskForITREstimated}
             />
           )}
         </>

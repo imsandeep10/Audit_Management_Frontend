@@ -88,6 +88,30 @@ export const taskService = {
       throw error;
     }
   },
+
+  async updateTaskWithITREstimatedData(
+    taskId: string, 
+    data: {
+      taxableAmount?: number;
+      taxAmount?: number;
+      taskAmount?: number;
+      estimatedRevenue?: number;
+      netProfit?: number;
+    }
+  ): Promise<ApiResponse> {
+    try {
+      const response = await axiosInstance.patch<ApiResponse>(
+        `/task/${taskId}/itr-estimated-data`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        throw error;
+      }
+      throw error;
+    }
+  },
 };
 
 
