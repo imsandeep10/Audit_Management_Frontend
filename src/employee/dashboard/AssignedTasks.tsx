@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { type TaskWithDetails } from "../../types/task";
 import {
   useEmployeeTasks,
   useUpdateSubTaskStatus,
 } from "../../hooks/useEmployeeTask";
 import { useAuth } from "../../contexts/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
 
 import NoteConversationDialog from "../../components/notes/NoteConversationDialog";
 import AmountDialog from "./AmountDialog";
@@ -16,6 +24,7 @@ import { AddNewEmployeeTask } from "./AddTasksByEmployee";
 
 const EmployeeAssignedTasks = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [activeTasks, setActiveTasks] = useState<TaskWithDetails[]>([]);
   const [completedTasks, setCompletedTasks] = useState<TaskWithDetails[]>([]);
@@ -28,6 +37,10 @@ const EmployeeAssignedTasks = () => {
   const [amountDialogOpen, setAmountDialogOpen] = useState(false);
   const [selectedTaskForAmount, setSelectedTaskForAmount] = useState<LocalTaskWithDetails | null>(null);
   const [showAddTask, setShowAddTask] = useState(false);
+  
+  // Dialog states for notifications
+  const [selectedTaskForDialog, setSelectedTaskForDialog] = useState<TaskWithDetails | null>(null);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
 
   const employeeId = user?.employee?._id;
   
@@ -50,6 +63,49 @@ const EmployeeAssignedTasks = () => {
       setCompletedTasks(completed);
     }
   }, [tasks]);
+
+  // Handle dialog opening from URL parameters (notification clicks)
+  useEffect(() => {
+    const openTaskParam = searchParams.get('openTask');
+    const openSubtaskParam = searchParams.get('openSubtask');
+
+    if (tasks && tasks.length > 0) {
+      // Handle opening task dialog from notification
+      if (openTaskParam) {
+        const taskToOpen = tasks.find((task: TaskWithDetails) => task._id === openTaskParam);
+        if (taskToOpen) {
+          setSelectedTaskForDialog(taskToOpen);
+          setIsTaskDialogOpen(true);
+
+          // If there's a subtask to open, open the note dialog as well
+          if (openSubtaskParam) {
+            const subtaskToOpen = taskToOpen.subTasks?.find((st: any) => st._id === openSubtaskParam);
+            if (subtaskToOpen) {
+              setSelectedSubTaskForNotes({
+                taskId: openTaskParam,
+                subTaskId: openSubtaskParam,
+                subTaskTitle: subtaskToOpen.taskTitle
+              });
+              setNoteDialogOpen(true);
+            }
+          }
+
+          // Clean up URL parameters after opening dialogs
+          const cleanupTimer = setTimeout(() => {
+            setSearchParams(prev => {
+              const newParams = new URLSearchParams(prev);
+              newParams.delete('openTask');
+              newParams.delete('openSubtask');
+              newParams.delete('highlightNote');
+              return newParams;
+            });
+          }, 500);
+
+          return () => clearTimeout(cleanupTimer);
+        }
+      }
+    }
+  }, [searchParams, tasks, setSearchParams]);
 
   const handleSubTaskToggle = async (
     taskId: string,
@@ -115,6 +171,17 @@ const EmployeeAssignedTasks = () => {
         console.error("Failed to save amounts:", err);
       }
     }
+  };
+
+  // Dialog handler functions for notifications
+  const handleTaskDialogClose = () => {
+    setIsTaskDialogOpen(false);
+    setSelectedTaskForDialog(null);
+  };
+
+  const handleNoteDialogClose = () => {
+    setNoteDialogOpen(false);
+    setSelectedSubTaskForNotes(null);
   };
 
   // Early returns AFTER all hooks have been called
@@ -239,14 +306,54 @@ const EmployeeAssignedTasks = () => {
             </div>
           </div>
 
+          {/* Task Dialog */}
+          <Dialog open={isTaskDialogOpen} onOpenChange={handleTaskDialogClose}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{selectedTaskForDialog?.taskTitle}</DialogTitle>
+                <DialogDescription>
+                  {selectedTaskForDialog?.description}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <p><strong>Status:</strong> {selectedTaskForDialog?.status}</p>
+                  <p><strong>Due Date:</strong> {selectedTaskForDialog?.dueDate ? new Date(selectedTaskForDialog.dueDate).toLocaleDateString() : 'Not set'}</p>
+                  <p><strong>Client:</strong> {Array.isArray(selectedTaskForDialog?.client) 
+                    ? selectedTaskForDialog.client.map((c: any) => typeof c === 'string' ? c : c.companyName).join(', ') 
+                    : typeof selectedTaskForDialog?.client === 'string' 
+                      ? selectedTaskForDialog.client 
+                      : (selectedTaskForDialog?.client as any)?.companyName || 'Unknown'
+                  }</p>
+                </div>
+                {selectedTaskForDialog?.subTasks && selectedTaskForDialog.subTasks.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-2">Subtasks:</h4>
+                    <ul className="space-y-1">
+                      {selectedTaskForDialog.subTasks.map((subTask: any) => (
+                        <li key={subTask._id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                          <span>{subTask.taskTitle}</span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            subTask.status === 'completed' ? 'bg-green-100 text-green-800' :
+                            subTask.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {subTask.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
           {/* Note Conversation Dialog */}
           {selectedSubTaskForNotes && (
             <NoteConversationDialog
               isOpen={noteDialogOpen}
-              onClose={() => {
-                setNoteDialogOpen(false);
-                setSelectedSubTaskForNotes(null);
-              }}
+              onClose={handleNoteDialogClose}
               taskId={selectedSubTaskForNotes.taskId}
               subTaskId={selectedSubTaskForNotes.subTaskId}
               subTaskTitle={selectedSubTaskForNotes.subTaskTitle}

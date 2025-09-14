@@ -65,18 +65,30 @@ export const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
       case 'Task':
         // Handle task note notifications with specific routing and note highlighting
         if (notification.type === 'task_note_added' && notification.metadata?.taskId) {
+          const taskId = notification.metadata.taskId;
+          const subtaskId = notification.metadata.subtaskId;
           const noteId = notification.metadata.noteId;
+          
           if (user?.role === 'admin') {
-            return noteId 
-              ? `/assignment/task/${notification.metadata.taskId}?highlightNote=${noteId}`
-              : `/assignment/task/${notification.metadata.taskId}`;
+            // Admin: redirect to assignment page with dialog parameters
+            const params = new URLSearchParams({
+              highlightTask: taskId,
+              openTask: taskId,
+              ...(subtaskId && { openSubtask: subtaskId }),
+              ...(noteId && { highlightNote: noteId })
+            });
+            return `/assignment?${params.toString()}`;
           }
+          
           if (user?.role === 'employee') {
-            return noteId 
-              ? `/employee/task/${notification.metadata.taskId}?highlightNote=${noteId}`
-              : `/employee/task/${notification.metadata.taskId}`;
+            // Employee: redirect to their assigned tasks page with dialog parameters
+            const params = new URLSearchParams({
+              openTask: taskId,
+              ...(subtaskId && { openSubtask: subtaskId }),
+              ...(noteId && { highlightNote: noteId })
+            });
+            return `/employee/assigned-tasks/${user._id}?${params.toString()}`;
           }
-          console.log('task note link', noteId);
         }
         
         // Default task routing for other task notifications
