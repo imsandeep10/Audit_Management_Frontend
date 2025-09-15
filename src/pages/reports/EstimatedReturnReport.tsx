@@ -9,7 +9,7 @@ import { useEstimatedReturnReport } from "../../hooks/useReports";
 export default function EstimatedReturnReport() {
   const [fiscalYear, setFiscalYear] = useState<string>(getCurrentNepalieFiscalYear());
 
-  const fiscalYearOptions = generateFiscalYearOptions(5, 2);
+  const fiscalYearOptions = generateFiscalYearOptions(5, 5);
 
   const { 
     data: reportData, 
@@ -63,10 +63,13 @@ export default function EstimatedReturnReport() {
               ))}
             </SelectContent>
           </Select>
-          {/* <Button onClick={handleExportToExcel} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Excel
-          </Button> */}
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
       </div>
 

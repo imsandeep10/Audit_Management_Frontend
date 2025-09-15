@@ -72,8 +72,9 @@ export const useITRReport = (fiscalYear: string) => {
       return response.data;
     },
     enabled: !!fiscalYear,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 5 * 60 * 1000, // 5 minutes cache time
+    refetchOnWindowFocus: true, // Refetch when window regains focus
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -88,8 +89,9 @@ export const useEstimatedReturnReport = (fiscalYear: string) => {
       return response.data;
     },
     enabled: !!fiscalYear,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 5 * 60 * 1000, // 5 minutes cache time
+    refetchOnWindowFocus: true, // Refetch when window regains focus
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });

@@ -6,7 +6,7 @@ import {
   useUpdateSubTaskStatus,
 } from "../../hooks/useEmployeeTask";
 import { useAuth } from "../../contexts/AuthContext";
-import { taskService } from "../../api/taskService";
+import { useUpdateEstimatedReturnByTaskId, useUpdateITRByTaskId } from "../../api/useReport";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +62,8 @@ const EmployeeAssignedTasks = () => {
   } = useEmployeeTasks(employeeId || ""); 
   
   const { mutate: updateStatus } = useUpdateSubTaskStatus();
+  const updateITRMutation = useUpdateITRByTaskId();
+  const updateEstimatedMutation = useUpdateEstimatedReturnByTaskId();
   
 
   useEffect(() => {
@@ -202,14 +204,40 @@ const EmployeeAssignedTasks = () => {
   const handleSaveITREstimatedData = async (data: ITREstimatedData) => {
     if (selectedTaskForITREstimated) {
       try {
-        // Call the new API to update task with ITR/Estimated data
-        await taskService.updateTaskWithITREstimatedData(
-          selectedTaskForITREstimated._id, 
-          data
-        );
+        const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
         
-        // Refresh the tasks data
+        console.log("Saving ITR/Estimated data:", {
+          taskType,
+          fiscalYear: data.fiscalYear,
+          data
+        });
+        
+        if (taskType === "itr") {
+          await updateITRMutation.mutateAsync({
+            taskId: selectedTaskForITREstimated._id,
+            itrData: {
+              taxableAmount: data.taxableAmount,
+              taxAmount: data.taxAmount,
+              taskAmount: data.taskAmount,
+              fiscalYear: data.fiscalYear, // Include fiscal year
+            },
+          });
+        } else if (taskType === "estimated return") {
+          await updateEstimatedMutation.mutateAsync({
+            taskId: selectedTaskForITREstimated._id,
+            estimatedReturnData: {
+              estimatedRevenue: data.estimatedRevenue,
+              netProfit: data.netProfit,
+              fiscalYear: data.fiscalYear, // Include fiscal year
+            },
+          });
+        }
+        
+        // Mark task completed and refresh
+        await updateStatus({ taskId: selectedTaskForITREstimated._id, status: "completed" });
         await refetch();
+        
+        console.log("Successfully saved and completed task");
         
         // Close dialog and reset state
         setSelectedTaskForITREstimated(null);

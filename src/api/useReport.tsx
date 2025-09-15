@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { reportService } from "./reportService";
 
 export const useGetReportSummary = () => {
@@ -33,3 +33,37 @@ export const useGetMonthlyUserReport = () => {
     },
   });
 };
+
+export const useUpdateITRByTaskId = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, itrData }: { taskId: string; itrData: { taxableAmount?: number; taxAmount?: number; taskAmount?: number; fiscalYear?: string; } }) => {
+      return reportService.updateITRByTaskId(taskId, itrData);
+    },
+    onSuccess: () => {
+      // Invalidate specific queries that depend on ITR data
+      queryClient.invalidateQueries({ queryKey: ["itrReport"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["employeeTasks"] });
+      queryClient.invalidateQueries({ queryKey: ["reportSummary"] });
+    },
+  });
+};
+
+export const useUpdateEstimatedReturnByTaskId = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, estimatedReturnData }: { taskId: string; estimatedReturnData: { estimatedRevenue?: number; netProfit?: number; fiscalYear?: string; } }) => {
+      return reportService.updateEstimatedReturnByTaskId(taskId, estimatedReturnData);
+    },
+    onSuccess: () => {
+      // Invalidate specific queries that depend on Estimated Return data
+      queryClient.invalidateQueries({ queryKey: ["estimatedReturnReport"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["employeeTasks"] });
+      queryClient.invalidateQueries({ queryKey: ["reportSummary"] });
+    },
+  });
+};
+
+
