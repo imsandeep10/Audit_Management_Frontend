@@ -294,7 +294,7 @@ export async function getBillById(billId: string): Promise<GetBillResponse> {
         const response = await axiosInstance.delete<DeleteBillResponse>(
             `/client/bills/${billId}`
         );
-
+    
         return response.data;
     }
 

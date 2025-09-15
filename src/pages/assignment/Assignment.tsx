@@ -14,7 +14,7 @@ import {
 } from "../../components/ui/dialog";
 import { LiaSlidersHSolid } from "react-icons/lia";
 import { AddNewTask } from "../../card/AddNewtask";
-import { useState, type JSX } from "react";
+import { useState, useEffect, useRef, type JSX } from "react";
 import { TaskCard } from "../../card/TaskCard";
 import { useGetTasks } from "../../api/useTask";
 import { useGetAllClients } from "../../api/useclient";
@@ -28,8 +28,12 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { TaskCardSkeleton } from "../../components/TaskCardSekelton";
+import { useSearchParams } from "react-router-dom";
+import NoteConversationDialog from "../../components/notes/NoteConversationDialog";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Assignment: React.FC = () => {
+  const { user } = useAuth();
   const [filterOption, setFilterOption] = useState<FilterOption>("default");
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -38,12 +42,111 @@ const Assignment: React.FC = () => {
   const [currentStatus, setCurrentStatus] = useState<string | undefined>(
     undefined
   );
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const taskRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  
+  // Dialog states for task details and notes
+  const [selectedTaskForDialog, setSelectedTaskForDialog] = useState<Task | null>(null);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [selectedSubTaskForNotes, setSelectedSubTaskForNotes] = useState<{
+    taskId: string;
+    subTaskId: string;
+    subTaskTitle: string;
+  } | null>(null);
 
   const { data: tasksResponse, isLoading } = useGetTasks(currentStatus);
   const tasks = tasksResponse?.tasks || [];
   console.log(tasks)
   const { data: clientsResponse } = useGetAllClients();
   const clients = clientsResponse?.data?.clients || []; // Assuming clients are included in the response
+
+  // Handle task highlighting from URL parameter
+  useEffect(() => {
+    const highlightTaskParam = searchParams.get('highlightTask');
+    const openTaskParam = searchParams.get('openTask');
+    const openSubtaskParam = searchParams.get('openSubtask');
+
+    if (tasks.length > 0) {
+      // Handle task highlighting
+      if (highlightTaskParam) {
+        setHighlightedTaskId(highlightTaskParam);
+        
+        // Scroll to the task after a short delay to ensure rendering
+        const timer = setTimeout(() => {
+          const taskElement = taskRefs.current[highlightTaskParam];
+          if (taskElement) {
+            taskElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+          }
+        }, 100);
+
+        // Remove highlighting after 3 seconds
+        const highlightTimer = setTimeout(() => {
+          setHighlightedTaskId(null);
+        }, 3000);
+
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(highlightTimer);
+        };
+      }
+
+      // Handle opening task dialog from notification
+      if (openTaskParam) {
+        const taskToOpen = tasks.find(task => task._id === openTaskParam);
+        if (taskToOpen) {
+          setSelectedTaskForDialog(taskToOpen);
+          setIsTaskDialogOpen(true);
+
+          // If there's a subtask to open, open the note dialog as well
+          if (openSubtaskParam) {
+            const subtaskToOpen = taskToOpen.subTasks?.find(st => st._id === openSubtaskParam);
+            if (subtaskToOpen) {
+              setSelectedSubTaskForNotes({
+                taskId: openTaskParam,
+                subTaskId: openSubtaskParam,
+                subTaskTitle: subtaskToOpen.taskTitle
+              });
+              setNoteDialogOpen(true);
+            }
+          }
+
+          // Clean up URL parameters after opening dialogs
+          const cleanupTimer = setTimeout(() => {
+            setSearchParams(prev => {
+              const newParams = new URLSearchParams(prev);
+              newParams.delete('openTask');
+              newParams.delete('openSubtask');
+              newParams.delete('highlightNote');
+              return newParams;
+            });
+          }, 500);
+
+          return () => clearTimeout(cleanupTimer);
+        }
+      }
+    }
+  }, [searchParams, tasks, setSearchParams]);
+
+  // Function to set task ref
+  const setTaskRef = (taskId: string) => (el: HTMLDivElement | null) => {
+    taskRefs.current[taskId] = el;
+  };
+
+  // Dialog handler functions
+  const handleTaskDialogClose = () => {
+    setIsTaskDialogOpen(false);
+    setSelectedTaskForDialog(null);
+  };
+
+  const handleNoteDialogClose = () => {
+    setNoteDialogOpen(false);
+    setSelectedSubTaskForNotes(null);
+  };
 
 
   type AssigneeObject = {
@@ -102,18 +205,27 @@ const Assignment: React.FC = () => {
   const renderTasks = (status: string, color: string): JSX.Element[] => {
     const sortedTasks = getFilteredTasks(status);
     return sortedTasks.map((task: Task) => (
-      <TaskCard
+      <div
         key={task._id}
-        {...task}
-        assignedTo={normalizeAssignedTo(task.assignedTo as unknown)}
-        clients={clients} // Pass clients array for lookup
-        color={color}
-        progress={
-          task.subTasks?.filter((subTask) => subTask.status === "completed")
-            .length
-        }
-        total={task.subTasks?.length}
-      />
+        ref={setTaskRef(task._id)}
+        className={`transition-all duration-500 ${
+          highlightedTaskId === task._id 
+            ? 'ring-4 ring-blue-500 ring-opacity-75 shadow-lg scale-105' 
+            : ''
+        }`}
+      >
+        <TaskCard
+          {...task}
+          assignedTo={normalizeAssignedTo(task.assignedTo as unknown)}
+          clients={clients} // Pass clients array for lookup
+          color={color}
+          progress={
+            task.subTasks?.filter((subTask) => subTask.status === "completed")
+              .length
+          }
+          total={task.subTasks?.length}
+        />
+      </div>
     ));
   };
 
@@ -372,6 +484,56 @@ const Assignment: React.FC = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Task Dialog */}
+      <Dialog open={isTaskDialogOpen} onOpenChange={handleTaskDialogClose}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedTaskForDialog?.taskTitle}</DialogTitle>
+            <DialogDescription>
+              {selectedTaskForDialog?.description}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <p><strong>Status:</strong> {selectedTaskForDialog?.status}</p>
+              <p><strong>Due Date:</strong> {selectedTaskForDialog?.dueDate ? new Date(selectedTaskForDialog.dueDate).toLocaleDateString() : 'Not set'}</p>
+              <p><strong>Client:</strong> {selectedTaskForDialog?.client?.companyName}</p>
+            </div>
+            {selectedTaskForDialog?.subTasks && selectedTaskForDialog.subTasks.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Subtasks:</h4>
+                <ul className="space-y-1">
+                  {selectedTaskForDialog.subTasks.map((subTask) => (
+                    <li key={subTask._id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <span>{subTask.taskTitle}</span>
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        subTask.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        subTask.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {subTask.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Note Conversation Dialog */}
+      {selectedSubTaskForNotes && (
+        <NoteConversationDialog
+          isOpen={noteDialogOpen}
+          onClose={handleNoteDialogClose}
+          taskId={selectedSubTaskForNotes.taskId}
+          subTaskId={selectedSubTaskForNotes.subTaskId}
+          subTaskTitle={selectedSubTaskForNotes.subTaskTitle}
+          currentUserName={user?.fullName || 'Unknown User'}
+        />
+      )}
     </div>
   );
 };

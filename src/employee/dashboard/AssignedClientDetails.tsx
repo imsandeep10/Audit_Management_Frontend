@@ -18,7 +18,6 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../../components/ui/button";
 import { Label } from "@radix-ui/react-label";
-
 export const AssignedClientDetails = () => {
   const { user } = useAuth();
   const employeeId = user?.employee?._id;
@@ -95,64 +94,67 @@ export const AssignedClientDetails = () => {
     <div className="space-y-6 mx-auto max-w-7xl p-4">
       <h2 className="text-2xl font-bold tracking-tight">Assigned Clients</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {clients.map((client: Client) => (
-          <Card key={client._id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center space-x-4">
-                <Avatar>
-                  {client.profileImageId?.url ? (
-                    <AvatarImage
-                      src={client.profileImageId.url}
-                      alt={client.fullName}
-                    />
-                  ) : null}
-                  <AvatarFallback>
-                    {client.fullName?.charAt(0) || "C"}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <Label className="text-sm">Company Name</Label>
-                  <CardDescription className="font-bold">{client.companyName}</CardDescription>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Client Cards */}
+        <div className="space-y-4">
+          {clients.map((client: Client) => (
+            <Card key={client._id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-4">
+                  <Avatar>
+                    {client.profileImageId?.url ? (
+                      <AvatarImage
+                        src={client.profileImageId.url}
+                        alt={client.fullName}
+                      />
+                    ) : null}
+                    <AvatarFallback>
+                      {client.fullName?.charAt(0) || "C"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Label className="text-sm">Company Name</Label>
+                    <CardDescription className="font-bold">{client.companyName}</CardDescription>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Name:</span><span>{client.fullName}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Email:</span><span>{client.email}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Phone:</span><span>{client.phoneNumber}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">IRDID:</span><span>{client.IRDID || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Office:</span><span>{client.IRDoffice || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Nature:</span><span>{client.clientNature || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Type:</span><span>{client.clientType || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of Tax Registration:</span><span>{client.dateOfTaxRegistration ? new Date(client.dateOfTaxRegistration).toLocaleDateString() : "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of VAT Registration:</span><span>{client.dateOfVatRegistration ? new Date(client.dateOfVatRegistration).toLocaleDateString() : "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Filling Period:</span><span>{client.fillingperiod || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Index File Number:</span><span>{client.indexFileNumber || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Password:</span><span>{client.irdPassword || "N/A"}</span></div>
-              <div className="flex items-center gap-5"><span className="text-sm font-medium">Registered Under:</span><span>{client.registeredUnder || "N/A"}</span></div>
-            </CardContent>
-            <CardFooter>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  navigate(`/employee/clients/${client._id}/documents`, {
-                    state: {
-                      clientId: client._id,
-                      clientName: client.fullName,
-                      userType: "employee",
-                      companyName: client.companyName,
-                    },
-                  });
-                }}
-              >
-                View Documents
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Name:</span><span>{client.fullName}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Email:</span><span>{client.email}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Phone:</span><span>{client.phoneNumber}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">IRDID:</span><span>{client.IRDID || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Office:</span><span>{client.IRDoffice || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Nature:</span><span>{client.clientNature || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Type:</span><span>{client.clientType || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of Tax Registration:</span><span>{client.dateOfTaxRegistration ? new Date(client.dateOfTaxRegistration).toLocaleDateString() : "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of VAT Registration:</span><span>{client.dateOfVatRegistration ? new Date(client.dateOfVatRegistration).toLocaleDateString() : "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Filling Period:</span><span>{client.fillingperiod || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Index File Number:</span><span>{client.indexFileNumber || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Password:</span><span>{client.irdPassword || "N/A"}</span></div>
+                <div className="flex items-center gap-5"><span className="text-sm font-medium">Registered Under:</span><span>{client.registeredUnder || "N/A"}</span></div>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    navigate(`/employee/clients/${client._id}/documents`, {
+                      state: {
+                        clientId: client._id,
+                        clientName: client.fullName,
+                        userType: "employee",
+                        companyName: client.companyName,
+                      },
+                    });
+                  }}
+                >
+                  View Documents
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+        </div>
       </div>
-    </div>
   );
 };
