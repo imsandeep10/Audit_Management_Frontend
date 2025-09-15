@@ -27,6 +27,7 @@ export const reportService = {
     taxableAmount?: number;
     taxAmount?: number;
     taskAmount?: number;
+    fiscalYear?: string;
   }) {
     const response = await axiosInstance.patch(`/report/itr/${taskId}`, { itrData });
     return response?.data ?? response;
@@ -35,6 +36,7 @@ export const reportService = {
   async updateEstimatedReturnByTaskId(taskId: string, estimatedReturnData: {
     estimatedRevenue?: number;
     netProfit?: number;
+    fiscalYear?: string;
   }) {
     const response = await axiosInstance.patch(`/report/estimated-return/${taskId}`, { estimatedReturnData });
     return response?.data ?? response;

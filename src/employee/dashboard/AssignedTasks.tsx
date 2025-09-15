@@ -205,6 +205,13 @@ const EmployeeAssignedTasks = () => {
     if (selectedTaskForITREstimated) {
       try {
         const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
+        
+        console.log("Saving ITR/Estimated data:", {
+          taskType,
+          fiscalYear: data.fiscalYear,
+          data
+        });
+        
         if (taskType === "itr") {
           await updateITRMutation.mutateAsync({
             taskId: selectedTaskForITREstimated._id,
@@ -212,6 +219,7 @@ const EmployeeAssignedTasks = () => {
               taxableAmount: data.taxableAmount,
               taxAmount: data.taxAmount,
               taskAmount: data.taskAmount,
+              fiscalYear: data.fiscalYear, // Include fiscal year
             },
           });
         } else if (taskType === "estimated return") {
@@ -220,6 +228,7 @@ const EmployeeAssignedTasks = () => {
             estimatedReturnData: {
               estimatedRevenue: data.estimatedRevenue,
               netProfit: data.netProfit,
+              fiscalYear: data.fiscalYear, // Include fiscal year
             },
           });
         }
@@ -227,6 +236,8 @@ const EmployeeAssignedTasks = () => {
         // Mark task completed and refresh
         await updateStatus({ taskId: selectedTaskForITREstimated._id, status: "completed" });
         await refetch();
+        
+        console.log("Successfully saved and completed task");
         
         // Close dialog and reset state
         setSelectedTaskForITREstimated(null);

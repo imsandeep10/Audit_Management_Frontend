@@ -203,7 +203,7 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                                 <SelectValue placeholder="Select Fiscal Year" />
                             </SelectTrigger>
                             <SelectContent>
-                                {generateFiscalYearOptions(10, 2).map((option) => (
+                                {generateFiscalYearOptions(5 , 5).map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
                                         {option.label}
                                     </SelectItem>

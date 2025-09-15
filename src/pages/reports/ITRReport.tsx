@@ -63,10 +63,13 @@ export default function ITRReport() {
               ))}
             </SelectContent>
           </Select>
-          {/* <Button onClick={handleExportToExcel} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Excel
-          </Button> */}
+          <button
+            onClick={() => refetch()}
+            className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
       </div>
 
@@ -185,35 +188,7 @@ export default function ITRReport() {
                 </div>
               )}
             </CardContent>
-          </Card>
-
-          {/* Summary Footer */}
-          {reportData.data.length > 0 && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">
-                      रु {formatAmount(reportData.totals.totalTaxableAmount)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Total Taxable Amount</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
-                      रु {formatAmount(reportData.totals.totalTaxAmount)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Total Tax Amount</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      रु {formatAmount(reportData.totals.totalTaskAmount)}
-                    </div>
-                    <div className="text-sm text-muted-foreground">Total Service Revenue</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          </Card>   
         </>
       ) : (
         <div className="text-center py-8 text-muted-foreground">
