@@ -164,6 +164,7 @@ export function AddNewTask({
   mode,
   taskId,
   defaultValues,
+  taskData, // Add this prop to pass the full task data for edit mode
 }: {
   onClose?: () => void;
   mode: "create" | "edit" | "maskebari";
@@ -178,6 +179,8 @@ export function AddNewTask({
     subTasks: { title: string }[];
     type?: "Monthly" | "Trimester" |"Estimated Return" |'ITR';
   };
+  taskData?: any; // Full task data for edit mode
+  setIsAmountDialogOpen?: (open: boolean) => void; // Function to open amount dialog
 }) {
   type AssigneeInput = string | { _id?: string; id?: string };
   const normalizeAssignedTo = useCallback(
@@ -270,8 +273,8 @@ export function AddNewTask({
   const periodType = form.watch('type');
   const clientList = clients?.data?.clients || [];
 
-  // Fixed filtering logic with lowercase conversion for API values
-// Fixed filtering logic with proper case handling
+  // Check if task has taskType (for edit mode) or type (for maskebari mode)
+  
 const filteredClients = useMemo(() => {
   if (mode !== 'maskebari' || !periodType) {
     return clientList;
@@ -414,6 +417,8 @@ const filteredClients = useMemo(() => {
   const removeSubTask = (index: number) => {
     remove(index);
   };
+
+
 
   return (
     <Form {...form}>
@@ -566,6 +571,20 @@ const filteredClients = useMemo(() => {
                 </FormItem>
               )}
             />
+          )}
+
+          {/* Task Type Display for Edit Mode */}
+          {mode === "edit" && taskData?.taskType && (
+            <div>
+              <FormLabel className="text-sm font-medium text-gray-900 block mb-2">
+                Task Type
+              </FormLabel>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-sm text-gray-700 capitalize">
+                  {taskData.taskType}
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Client Names Display for Maskebari Mode */}

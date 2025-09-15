@@ -72,6 +72,10 @@ export const clientService = {
     const response = await axiosInstance.get(`amounts/get-all-maskebari`);
     return response.data;
   },
+  async getAmountsbyTaskId(taskId: string) {
+    const response = await axiosInstance.get(`amounts/get-maskebari-by-task-id/${taskId}`);
+    return response.data;
+  },
   async uploadBulkClient(formData: FormData) {
     const response = await axiosInstance.post(`client/bulk-upload`, formData, {
       headers: {

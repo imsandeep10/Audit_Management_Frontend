@@ -411,7 +411,7 @@ const EmployeeAssignedTasks = () => {
           )}
 
           {/* Amount Dialog */}
-          {selectedTaskForAmount && (
+          {amountDialogOpen && selectedTaskForAmount && (
             <AmountDialog
               isOpen={amountDialogOpen}
               onClose={() => {
