@@ -108,10 +108,9 @@ const AmountDialog = ({ isOpen, onClose, onSave, task }: AmountDialogProps) => {
   const handleDateChange = useCallback((index: number, date: string) => {
     setClientAmounts((prev) => {
       const updatedAmounts = [...prev];
-      console.log(updatedAmounts);
       updatedAmounts[index] = {
         ...updatedAmounts[index],
-        recordedDate: date,
+        recordedDate: new date(),
       };
       return updatedAmounts;
     });
@@ -256,9 +255,6 @@ const AmountDialog = ({ isOpen, onClose, onSave, task }: AmountDialogProps) => {
                     <h3 className="text-lg font-medium text-gray-800">
                       {amount.clientName}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Client ID: {amount.clientId}
-                    </p>
                   </div>
 
                   {clientAmounts.length > 1 && (
@@ -284,6 +280,7 @@ const AmountDialog = ({ isOpen, onClose, onSave, task }: AmountDialogProps) => {
                       type="dialog"
                     />
                   </div>
+                  {/* {amount.recordedDate} */}
                 </div>
 
                 {/* Sales Section */}
