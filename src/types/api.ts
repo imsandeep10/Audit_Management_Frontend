@@ -58,6 +58,7 @@ export interface TasksListResponse {
 export interface Task {
     _id: string;
     taskTitle: string;
+    taskType?: string; // Added to support conditional UI logic
     description: string;
     status: string;
     assignedTo: Array<{

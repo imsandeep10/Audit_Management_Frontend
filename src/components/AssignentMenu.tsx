@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -72,6 +72,7 @@ import { taskService } from "../api/taskService";
 import type { Task } from "../types/api";
 import NoteConversationDialog from "./notes/NoteConversationDialog";
 import { useAuth } from "../contexts/AuthContext";
+import AmountDialog from "../employee/dashboard/AmountDialog";
 
 // Client Select Component
 function ClientSelect({
@@ -789,12 +790,14 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
     "view" | "delete" | "edit" | null
   >(null);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [amountDialogOpen, setAmountDialogOpen] = useState(false);
   const [selectedSubTaskForNotes, setSelectedSubTaskForNotes] = useState<{
     subTaskId: string;
     subTaskTitle: string;
   } | null>(null);
 
   const { data, isLoading, error } = useGetTaskById(selectedTask || undefined);
+  console.log(data)
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -891,6 +894,27 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
 
   const assignedUsersInfo = getAssignedUsersInfo();
 
+  const taskForAmountDialog = useMemo(() => {
+    const task = data?.task as any;
+    if (!task) return null;
+    const clients = Array.isArray(task.client)
+      ? task.client
+      : task.client
+        ? [task.client]
+        : [];
+    return {
+      _id: task._id,
+      taskTitle: task.taskTitle,
+      taskType: task.taskType,
+      client: clients.map((c: any) => ({
+        _id: c?._id,
+        companyName: c?.companyName,
+        clientNature: c?.clientNature,
+        registrationNumber: c?.registrationNumber,
+      })),
+    } as any;
+  }, [data]);
+
   return (
     <>
       <DropdownMenu>
@@ -931,6 +955,8 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
               <span>Description: </span>
               {data?.task?.description || "Task information and details"}
             </DialogDescription>
+            {/* Edit Amount Button - only show if taskType exists */}
+         
           </DialogHeader>
 
           {isLoading ? (
@@ -1038,6 +1064,8 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
                                     {subTask.status}
                                   </span>
                                 )}
+
+                                
                               </div>
                               
                               {/* Note conversation button - Hidden for completed subtasks */}
@@ -1097,9 +1125,18 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
             <p>No task found.</p>
           )}
 
-          <div className="flex justify-end">
-            <Button onClick={() => setDialogState(null)}>Close</Button>
-          </div>
+             <div className="flex w-full justify-end gap-2 mt-2">
+              {data?.task?.taskType && (
+                <Button
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  size="sm"
+                  onClick={() => { setAmountDialogOpen(true); setDialogState(null); }}
+                >
+                  Edit Amount
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setDialogState(null)}>Close</Button>
+            </div>
         </DialogContent>
       </Dialog>
 
@@ -1199,6 +1236,20 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
           subTaskId={selectedSubTaskForNotes.subTaskId}
           subTaskTitle={selectedSubTaskForNotes.subTaskTitle}
           currentUserName={user?.fullName || "Admin"}
+        />
+      )}
+
+      {/* Amount Dialog */}
+      {amountDialogOpen && taskForAmountDialog && (
+        <AmountDialog
+          isOpen={amountDialogOpen}
+          onClose={() => setAmountDialogOpen(false)}
+          onSave={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            await queryClient.invalidateQueries({ queryKey: ["task", selectedTask] });
+            toast.success("Amounts saved");
+          }}
+          task={taskForAmountDialog}
         />
       )}
     </>
