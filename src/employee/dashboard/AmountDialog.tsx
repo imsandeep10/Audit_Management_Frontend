@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { useCreateAmount } from "../../api/useclient";
+import { useCreateAmount, useGetAmountsbyTaskId, useUpdateAmount } from "../../api/useclient";
 import DatePicker from "../../components/date picker/date-picker";
-import { Plus, Save, Trash2, X } from "lucide-react";
+import { Save, Trash2, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 
 // Types
@@ -87,8 +87,43 @@ const AmountDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   
   const createAmountMutation = useCreateAmount();
+  const updateAmountMutation = useUpdateAmount();
+  const { data: existingAmountsResponse } = useGetAmountsbyTaskId(task._id, { enabled: isOpen });
 
-  // Use useCallback to prevent function recreation on every render
+  console.log(task,"TASK FOR AMOUNT DIALOG")
+  console.log(existingAmountsResponse)
+
+  const existingAmountsByClientId = useMemo(() => {
+    // Normalize API response to an array of records
+    const list = Array.isArray(existingAmountsResponse)
+      ? (existingAmountsResponse as any[])
+      : Array.isArray((existingAmountsResponse as any)?.maskebariRecords)
+      ? ((existingAmountsResponse as any).maskebariRecords as any[])
+      : Array.isArray((existingAmountsResponse as any)?.data)
+      ? ((existingAmountsResponse as any).data as any[])
+      : [];
+
+    const map = new Map<string, any>();
+    for (const item of list) {
+      // Support both object and string clientId forms, and fallback to client field
+      const rawClientId: any = (item as any)?.clientId ?? (item as any)?.client;
+      const clientIdStr: string | undefined =
+        (typeof rawClientId === 'object' && rawClientId?._id)
+          ? String(rawClientId._id)
+          : (typeof rawClientId === 'string')
+          ? rawClientId
+          : (item as any)?.client?._id
+          ? String((item as any).client._id)
+          : undefined;
+
+      if (clientIdStr) {
+        map.set(clientIdStr, item);
+      }
+    }
+    return map;
+  }, [existingAmountsResponse]);
+
+  // Optimized with proper dependencies
   const handleAmountChange = useCallback((index: number, field: keyof ClientAmount, value: string) => {
     setClientAmounts(prev => {
       const updatedAmounts = [...prev];
@@ -105,7 +140,7 @@ const AmountDialog = ({
       }
       return updatedAmounts;
     });
-  }, []);
+  }, []); // No dependencies needed since we use functional state updates
 
   const handleDateChange = useCallback((index: number, date: string) => {
     setClientAmounts(prev => {
@@ -116,32 +151,16 @@ const AmountDialog = ({
       };
       return updatedAmounts;
     });
-  }, []);
-
-  const addNewClientAmount = useCallback(() => {
-    // Find clients that don't have amounts yet
-    const existingClientIds = clientAmounts.map(ca => ca.clientId);
-    const availableClients = task.client?.filter(client => !existingClientIds.includes(client._id)) || [];
-    
-    if (availableClients.length > 0) {
-      const newAmount: ClientAmount = {
-        id: `new-${Date.now()}`,
-        clientId: availableClients[0]._id,
-        clientName: availableClients[0].companyName,
-        vatableSales: 0,
-        vatFreeSales: 0,
-        vatablePurchase: 0,
-        customPurchase: 0,
-        vatFreePurchase: 0,
-        creditRemainingBalance: 0,
-        recordedDate: new Date().toISOString().split('T')[0]
-      };
-      setClientAmounts(prev => [...prev, newAmount]);
-    }
-  }, [clientAmounts, task.client]);
+  }, []); // No dependencies needed since we use functional state updates
 
   const removeClientAmount = useCallback((index: number) => {
     setClientAmounts(prev => prev.filter((_, i) => i !== index));
+  }, []); // No dependencies needed since we use functional state updates
+
+  // Add useCallback for error handling
+  const handleError = useCallback((error: any) => {
+    console.error('Error saving amounts:', error);
+    // You might want to show an error toast here
   }, []);
 
   const handleSave = useCallback(async () => {
@@ -160,57 +179,84 @@ const AmountDialog = ({
           clientId: amount.clientId,
           taskId: task._id,
         };
-        await createAmountMutation.mutateAsync(payload);
+        const hasExisting = existingAmountsByClientId.has(amount.clientId);
+        if (hasExisting) {
+          await updateAmountMutation.mutateAsync(payload);
+        } else {
+          await createAmountMutation.mutateAsync(payload);
+        }
       }
 
       await onSave(clientAmounts);
       handleClose();
     } catch (error) {
-      console.error('Error saving amounts:', error);
-      // You might want to show an error toast here
+      handleError(error);
     } finally {
       setIsLoading(false);
     }
-  }, [clientAmounts, createAmountMutation, onSave]);
+  }, [
+    clientAmounts, 
+    createAmountMutation, 
+    updateAmountMutation, 
+    existingAmountsByClientId, 
+    onSave, 
+    task._id,
+    handleError
+  ]); // Added handleError and task._id as dependencies
 
   const handleClose = useCallback(() => {
     setClientAmounts([]);
     onClose();
   }, [onClose]);
 
-  const getTotalAmount = useCallback((amount: ClientAmount) => {
-    return (
-      (amount.vatableSales || 0) +
-      (amount.vatFreeSales || 0) +
-      (amount.vatablePurchase || 0) +
-      (amount.customPurchase || 0) +
-      (amount.vatFreePurchase || 0) +
-      (amount.creditRemainingBalance || 0)
-    );
+  // Create memoized client amount creation function
+  const createClientAmount = useCallback((client: Client, existing: any) => {
+    const existingDate: string | undefined = existing?.maskebariDate || existing?.recordedDate;
+    return {
+      id: `client-${client._id}`,
+      clientId: client._id,
+      clientName: client.companyName,
+      vatableSales: Number(existing?.vatableSales ?? 0),
+      vatFreeSales: Number(existing?.vatFreeSales ?? 0),
+      vatablePurchase: Number(existing?.vatablePurchase ?? 0),
+      customPurchase: Number(existing?.customPurchase ?? 0),
+      vatFreePurchase: Number(existing?.vatFreePurchase ?? 0),
+      creditRemainingBalance: Number(existing?.creditRemainingBalance ?? 0),
+      recordedDate: (existingDate ? String(existingDate).slice(0, 10) : new Date().toISOString().split('T')[0]),
+    } as ClientAmount;
   }, []);
 
-  const grandTotal = useMemo(() => {
-    return clientAmounts.reduce((total, amount) => total + getTotalAmount(amount), 0);
-  }, [clientAmounts, getTotalAmount]);
+  // Create memoized amount field change handlers for each client
+  const createAmountFieldChangeHandler = useCallback((index: number, field: keyof ClientAmount) => {
+    return (value: string) => handleAmountChange(index, field, value);
+  }, [handleAmountChange]);
+
+  const createDateChangeHandler = useCallback((index: number) => {
+    return (date: string) => handleDateChange(index, date);
+  }, [handleDateChange]);
+
+  const createRemoveHandler = useCallback((index: number) => {
+    return () => removeClientAmount(index);
+  }, [removeClientAmount]);
 
   useEffect(() => {
     if (isOpen && task.client) {
-      // Create fresh amounts for each client with default values
-      const mappedAmounts = task.client.map((client) => ({
-        id: `client-${client._id}`, // Use client ID for stable key
-        clientId: client._id,
-        clientName: client.companyName,
-        vatableSales: 0,
-        vatFreeSales: 0,
-        vatablePurchase: 0,
-        customPurchase: 0,
-        vatFreePurchase: 0,
-        creditRemainingBalance: 0,
-        recordedDate: new Date().toISOString().split('T')[0]
-      }));
+      const mappedAmounts = task.client.map((client) => {
+        const existing = existingAmountsByClientId.get(String(client._id)) as any;
+        return createClientAmount(client, existing);
+      });
       setClientAmounts(mappedAmounts);
     }
-  }, [isOpen, task.client]);
+  }, [isOpen, task.client, existingAmountsByClientId, createClientAmount]);
+
+  // Memoize handlers array to prevent unnecessary re-renders
+  const clientHandlers = useMemo(() => {
+    return clientAmounts.map((_, index) => ({
+      onAmountChange: createAmountFieldChangeHandler,
+      onDateChange: createDateChangeHandler(index),
+      onRemove: createRemoveHandler(index)
+    }));
+  }, [clientAmounts.length, createAmountFieldChangeHandler, createDateChangeHandler, createRemoveHandler]);
 
   if (!isOpen) return null;
 
@@ -256,7 +302,7 @@ const AmountDialog = ({
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => removeClientAmount(index)}
+                      onClick={clientHandlers[index]?.onRemove}
                       disabled={isLoading}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -270,7 +316,7 @@ const AmountDialog = ({
                     <DatePicker
                       label="Recorded Date"
                       value={amount.recordedDate}
-                      onChange={(date) => handleDateChange(index, date)}
+                      onChange={clientHandlers[index]?.onDateChange}
                       required
                       type="dialog"
                     />
@@ -284,13 +330,13 @@ const AmountDialog = ({
                     <AmountField
                       label="Vatable Sales"
                       value={amount.vatableSales}
-                      onChange={(value) => handleAmountChange(index, 'vatableSales', value)}
+                      onChange={clientHandlers[index]?.onAmountChange(index, 'vatableSales')}
                       disabled={isLoading}
                     />
                     <AmountField
                       label="VAT Free Sales"
                       value={amount.vatFreeSales}
-                      onChange={(value) => handleAmountChange(index, 'vatFreeSales', value)}
+                      onChange={clientHandlers[index]?.onAmountChange(index, 'vatFreeSales')}
                       disabled={isLoading}
                     />
                   </div>
@@ -303,19 +349,19 @@ const AmountDialog = ({
                     <AmountField
                       label="Vatable Purchase"
                       value={amount.vatablePurchase}
-                      onChange={(value) => handleAmountChange(index, 'vatablePurchase', value)}
+                      onChange={clientHandlers[index]?.onAmountChange(index, 'vatablePurchase')}
                       disabled={isLoading}
                     />
                     <AmountField
                       label="Custom Purchase"
                       value={amount.customPurchase}
-                      onChange={(value) => handleAmountChange(index, 'customPurchase', value)}
+                      onChange={clientHandlers[index]?.onAmountChange(index, 'customPurchase')}
                       disabled={isLoading}
                     />
                     <AmountField
                       label="VAT Free Purchase"
                       value={amount.vatFreePurchase}
-                      onChange={(value) => handleAmountChange(index, 'vatFreePurchase', value)}
+                      onChange={clientHandlers[index]?.onAmountChange(index, 'vatFreePurchase')}
                       disabled={isLoading}
                     />
                   </div>
@@ -348,44 +394,10 @@ const AmountDialog = ({
                 </div>
 
                 {/* Total for this client */}
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Client Total:</span>
-                    <span className="text-lg font-semibold text-blue-600">
-                      NRs{getTotalAmount(amount).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+             
               </div>
             ))}
           </div>
-
-          {/* Add New Client Button */}
-          {task.client && task.client.length > clientAmounts.length && (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-              <Button
-                variant="outline"
-                onClick={addNewClientAmount}
-                className="w-full"
-                disabled={isLoading}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Amount for Another Client
-              </Button>
-            </div>
-          )}
-
-          {/* Grand Total */}
-          {clientAmounts.length > 1 && (
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-medium text-gray-800">Grand Total:</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  NRs{grandTotal.toFixed(2)}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

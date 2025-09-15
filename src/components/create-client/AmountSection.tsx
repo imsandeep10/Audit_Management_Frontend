@@ -101,7 +101,25 @@ const MaskebariRecords: React.FC = () => {
     }).format(amount).replace('NPR', 'NRs');
   };
 
+  // Calculate total amount excluding credit balance
+  const calculateTotalAmount = (record: MaskebariRecord): number => {
+    const vatableSales = record.vatableSales || 0;
+    const vatFreeSales = record.vatFreeSales || 0;
+    const vatablePurchase = record.vatablePurchase || 0;
+    const customPurchase = record.customPurchase || 0;
+    const vatFreePurchase = record.vatFreePurchase || 0;
+    
+    return vatableSales + vatFreeSales + vatablePurchase + customPurchase + vatFreePurchase;
+  };
 
+  // Calculate combined total for latest + all historical records (excluding credit balance)
+  const calculateCombinedTotalAmount = (record: MaskebariRecord): number => {
+    const latestTotal = calculateTotalAmount(record);
+    const historyTotal = (record.lastMaskebari || []).reduce((sum, hist) => sum + calculateTotalAmount(hist), 0);
+    return latestTotal + historyTotal;
+  };
+
+  
 
   const getCreditBalanceColor = (balance: number): string => {
     if (balance > 0) return 'text-green-600';
@@ -205,6 +223,7 @@ const MaskebariRecords: React.FC = () => {
         'Custom Purchase (NRs)': record.customPurchase || 0,
         'VAT Free Purchase (NRs)': record.vatFreePurchase || 0,
         'Credit Balance (NRs)': record.creditRemainingBalance || 0,
+        'Total Amount (NRs)': calculateTotalAmount(record),
       };
 
       const historyRecords = (record.lastMaskebari || []).map((histRecord, histIndex) => ({
@@ -219,6 +238,7 @@ const MaskebariRecords: React.FC = () => {
         'Custom Purchase (NRs)': histRecord.customPurchase || 0,
         'VAT Free Purchase (NRs)': histRecord.vatFreePurchase || 0,
         'Credit Balance (NRs)': histRecord.creditRemainingBalance || 0,
+        'Total Amount (NRs)': calculateTotalAmount(histRecord),
       }));
 
       return [mainRecord, ...historyRecords];
@@ -228,7 +248,7 @@ const MaskebariRecords: React.FC = () => {
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       worksheet['!cols'] = [
         { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 20 }, { wch: 15 },
-        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+        { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
       ];
 
       const workbook = XLSX.utils.book_new();
@@ -248,8 +268,8 @@ const MaskebariRecords: React.FC = () => {
     if (!filteredRecords.length) return;
 
     const csvData = [
-      ['S.N.', 'Type', 'Date', 'Company Name', 'Client ID', 'Vatable Sales', 'VAT Free Sales',
-        'Vatable Purchase', 'Custom Purchase', 'VAT Free Purchase', 'Credit Balance']
+      ['S.N.', 'Type', 'Date', 'Company Name', 'Client ID', 'Vatable Sales', 'VAT Free Sales', 
+       'Vatable Purchase', 'Custom Purchase', 'VAT Free Purchase', 'Credit Balance', 'Total Amount']
     ];
 
     filteredRecords.forEach((record, index) => {
@@ -266,6 +286,7 @@ const MaskebariRecords: React.FC = () => {
         (record.customPurchase || 0).toString(),
         (record.vatFreePurchase || 0).toString(),
         (record.creditRemainingBalance || 0).toString(),
+        calculateTotalAmount(record).toString(),
       ]);
 
       // Add historical records
@@ -282,6 +303,7 @@ const MaskebariRecords: React.FC = () => {
           (histRecord.customPurchase || 0).toString(),
           (histRecord.vatFreePurchase || 0).toString(),
           (histRecord.creditRemainingBalance || 0).toString(),
+          calculateTotalAmount(histRecord).toString(),
         ]);
       });
     });
@@ -510,6 +532,12 @@ const MaskebariRecords: React.FC = () => {
                             Credit Balance
                           </div>
                         </TableHead>
+                        <TableHead className="font-semibold text-center min-w-[150px]">
+                          <div className="flex items-center justify-center gap-2">
+                            <Calculator className="h-4 w-4" />
+                            Total Amount
+                          </div>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -589,12 +617,17 @@ const MaskebariRecords: React.FC = () => {
                                   {(record.creditRemainingBalance || 0) < 0 ? '-' : ''}{formatCurrency(Math.abs(record.creditRemainingBalance || 0))}
                                 </span>
                               </TableCell>
+                              <TableCell className="text-center">
+                                <span className="font-bold text-purple-700">
+                                  {formatCurrency(calculateCombinedTotalAmount(record))}
+                                </span>
+                              </TableCell>
                             </TableRow>
 
                             {/* Historical Records Dropdown Content */}
                             {hasHistory && isExpanded && (
                               <TableRow>
-                                <TableCell colSpan={10} className="p-0">
+                                <TableCell colSpan={11} className="p-0">
                                   <div className="bg-blue-50/50 border-t border-blue-200 p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                       <History className="h-4 w-4 text-blue-600" />
@@ -659,6 +692,8 @@ const MaskebariRecords: React.FC = () => {
                                                 {formatCurrency(histRecord.creditRemainingBalance || 0)}
                                               </div>
                                             </div>
+                                            <div>
+                                            </div>
                                           </div>
                                         </div>
                                       ))}
@@ -673,7 +708,7 @@ const MaskebariRecords: React.FC = () => {
 
                       {filteredRecords.length === 0 && searchTerm && (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8">
+                          <TableCell colSpan={11} className="text-center py-8">
                             <div className="flex flex-col items-center gap-2">
                               <Search className="h-8 w-8 text-muted-foreground" />
                               <p className="text-muted-foreground">No records found matching "{searchTerm}"</p>

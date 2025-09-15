@@ -111,6 +111,16 @@ export const useGetAmountByCLientId = (
     queryFn: () => clientService.getAmounts(),
   });
 };
+export const useGetAmountsbyTaskId = (
+  taskId: string,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery({
+    queryKey: ["amounts", taskId],
+    queryFn: () => clientService.getAmountsbyTaskId(taskId),
+    enabled: (!!taskId) && (options?.enabled ?? true),
+  });
+};
 export const useClientUpdateMutations = () => {
   const queryClient = useQueryClient();
 
@@ -221,7 +231,7 @@ export const useUpdateAmount = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: MaskebariAmountsProps) => clientService.addAmount(data),
+    mutationFn: (data: MaskebariAmountsProps) => clientService.updateAmount(data),
     onSuccess: () => {
       // Invalidate related queries so UI gets fresh data
       queryClient.invalidateQueries({ queryKey: ["amounts"] });
