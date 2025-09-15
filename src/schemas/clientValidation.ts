@@ -21,7 +21,7 @@ export const ClientFormSchema = z.object({
     .optional(),
 
   clientType: z.string().min(1, "Client type is required"),
-  profileImageId: z.string().nonempty("Profile image is required").optional(),
+  profileImageId: z.string().optional(),
 
   address: z.string().min(5, "Address must be at least 5 characters"),
   phoneNumber: z
@@ -34,7 +34,6 @@ export const ClientFormSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   registrationNumber: z
     .string()
-    .min(1, "Registration number is required")
     .optional(),
 
   IRDID: z.string().optional(),
@@ -50,8 +49,8 @@ export const ClientFormSchema = z.object({
   fillingperiod: z
     .string()
     .refine(
-      (value) => !value || ["monthly", "yearly", "trimester"].includes(value),
-      "Filling period must be monthly, yearly, or trimester"
+      (value) => !value || ["monthly", "trimester"].includes(value),
+      "Filling period must be monthly or trimester"
     )
     .optional(),
 

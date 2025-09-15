@@ -130,7 +130,11 @@ const CreateClient: React.FC = () => {
   });
 
   const handleImageSelect = (imageId: string) => {
-    setValue("profileImageId", imageId);
+    if (imageId) {
+      setValue("profileImageId", imageId);
+    } else {
+      setValue("profileImageId", undefined);
+    }
   };
 
   const createClientMutation = useMutation({
@@ -187,6 +191,23 @@ const CreateClient: React.FC = () => {
   const onSubmit: SubmitHandler<ClientFormData> = async (
     data: ClientFormData
   ): Promise<void> => {
+    // Handle empty profileImageId - convert empty string to undefined
+    if (!data.profileImageId || data.profileImageId.trim() === "") {
+      data.profileImageId = undefined;
+    }
+    
+    // Remove any other empty string fields that should be null/undefined
+    Object.keys(data).forEach(key => {
+      const value = data[key as keyof ClientFormData];
+      if (value === "" && key !== "fullName" && key !== "email" && key !== "password") {
+        // Only convert empty strings to undefined for optional fields
+        // Keep required string fields as empty strings for validation
+        if (!["fullName", "email", "password", "address", "phoneNumber", "clientNature", "companyName", "registrationNumber", "IRDID", "irdPassword", "OCRID", "ocrPassword", "VCTSID", "vctsPassword"].includes(key)) {
+          (data as any)[key] = undefined;
+        }
+      }
+    });
+
     try {
       await createClientMutation.mutateAsync(data);
     } catch (error) {
@@ -217,9 +238,8 @@ const CreateClient: React.FC = () => {
         return (
           <div key={step} className="flex flex-col items-center">
             <div
-              className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold transition-colors ${
-                isCompleted || isCurrent ? "bg-blue-600" : "bg-gray-400"
-              }`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold transition-colors ${isCompleted || isCurrent ? "bg-blue-600" : "bg-gray-400"
+                }`}
             >
               {step}
             </div>
