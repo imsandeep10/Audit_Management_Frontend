@@ -2,18 +2,18 @@ import NepaliDate from 'nepali-datetime';
 
 /**
  * Get the current Nepali fiscal year
- * Fiscal year starts from Shrawan (month 3) and ends in Asar (month 2) of the next year
+ * Fiscal year starts from Shrawan (month 4) and ends in Asar (month 3) of the next year
  * @returns {string} Current fiscal year in format "2080/81"
  */
 export const getCurrentNepalieFiscalYear = (): string => {
   try {
     const today = new NepaliDate();
-    const currentMonth = today.getMonth(); // 0-based indexing
+    const currentMonth = today.getMonth() + 1; // Convert to 1-based indexing
     const currentYear = today.getYear();
     
-    // If current month is Shrawan (3) or later, fiscal year is current/next
-    // If current month is before Shrawan (0,1,2), fiscal year is previous/current
-    if (currentMonth >= 3) {
+    // If current month is Shrawan (4) to Chaitra (12), fiscal year is current/next
+    // If current month is Baisakh (1) to Asar (3), fiscal year is previous/current
+    if (currentMonth >= 4) {
       // From Shrawan to Chaitra - fiscal year is current/next year
       const nextYear = (currentYear + 1).toString().slice(-2);
       return `${currentYear}/${nextYear}`;
@@ -25,17 +25,11 @@ export const getCurrentNepalieFiscalYear = (): string => {
     }
   } catch (error) {
     console.error('Error getting current Nepali fiscal year:', error);
-    return '2081/82'; // Default fallback
+    return '2082/83'; // Default fallback updated to match current date
   }
 };
 
-/**
- * Generate fiscal year options for dropdowns
- * @param {number} yearsBack - Number of years to go back from current
- * @param {number} yearsForward - Number of years to go forward from current
- * @returns {Array} Array of fiscal year options
- */
-export const generateFiscalYearOptions = (yearsBack: number = 5, yearsForward: number = 2) => {
+export const generateFiscalYearOptions = (yearsBack: number = 10, yearsForward: number = 2) => {
   const options = [];
   const currentFiscalYear = getCurrentNepalieFiscalYear();
   const [currentYear] = currentFiscalYear.split('/').map(y => parseInt(y));

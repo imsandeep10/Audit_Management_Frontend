@@ -118,7 +118,7 @@ interface FiscalYearOption {
  * @param {number} yearsForward - Number of years to go forward from current
  * @returns {FiscalYearOption[]} Array of fiscal year objects with value and label
  */
-export const generateFiscalYearOptions = (yearsBack: number = 5, yearsForward: number = 2): FiscalYearOption[] => {
+export const generateFiscalYearOptions = (yearsBack: number = 10, yearsForward: number = 2): FiscalYearOption[] => {
   try {
     const currentFiscalYear = getCurrentNepalieFiscalYear();
     const [currentStartYear] = currentFiscalYear.split('/');

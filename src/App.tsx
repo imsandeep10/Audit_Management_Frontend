@@ -42,6 +42,8 @@ import { UploadClientDocumentsByEmployee } from "./employee/dashboard/UploadClie
 import { EmployeeProfile } from "./employee/dashboard/Profile";
 import { ClientDocumentsPage } from "./components/create-client/client-document";
 import Report from "./pages/report/report";
+import ITRReport from "./pages/reports/ITRReport";
+import EstimatedReturnReport from "./pages/reports/EstimatedReturnReport";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { Profile } from "./components/profile/UserProfile";
 import Assignees from "./pages/assignes/Assignees";
@@ -115,6 +117,8 @@ const router = createBrowserRouter([
       { path: "chat", element: <Chat /> },
       { path: "chat/:id", element: <Chat /> },
       { path: "report", element: <Report /> },
+      { path: "reports/itr", element: <ITRReport /> },
+      { path: "reports/estimated-return", element: <EstimatedReturnReport /> },
     ],
   },
 

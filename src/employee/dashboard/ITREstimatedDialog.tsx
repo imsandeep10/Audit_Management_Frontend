@@ -9,6 +9,8 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { getCurrentNepalieFiscalYear, generateFiscalYearOptions } from "../../utils/fiscalYear";
 
 export interface ITREstimatedData {
     // ITR fields
@@ -19,6 +21,9 @@ export interface ITREstimatedData {
     // Estimated Return fields
     estimatedRevenue?: number;
     netProfit?: number;
+
+    // Common fields
+    fiscalYear?: string;
 }
 
 export interface TaskWithITRData {
@@ -49,6 +54,7 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
         taskAmount: 0,
         estimatedRevenue: 0,
         netProfit: 0,
+        fiscalYear: getCurrentNepalieFiscalYear(),
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,6 +65,11 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
+
+        // Validate fiscal year for both ITR and Estimated Return
+        if (!formData.fiscalYear) {
+            newErrors.fiscalYear = "Fiscal Year is required";
+        }
 
         if (isITR) {
             if (formData.taxableAmount === undefined || formData.taxableAmount === null) {
@@ -86,12 +97,20 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
     };
 
     const handleInputChange = (field: keyof ITREstimatedData, value: string) => {
-        // Allow empty string, negative numbers, and decimal values
-        const numValue = value === "" ? 0 : parseFloat(value);
-        setFormData(prev => ({
-            ...prev,
-            [field]: isNaN(numValue) ? 0 : numValue
-        }));
+        // Handle fiscal year as string, others as numbers
+        if (field === 'fiscalYear') {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value
+            }));
+        } else {
+            // Allow empty string, negative numbers, and decimal values
+            const numValue = value === "" ? 0 : parseFloat(value);
+            setFormData(prev => ({
+                ...prev,
+                [field]: isNaN(numValue) ? 0 : numValue
+            }));
+        }
 
         // Clear error when user starts typing
         if (errors[field]) {
@@ -127,6 +146,7 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
             taskAmount: 0,
             estimatedRevenue: 0,
             netProfit: 0,
+            fiscalYear: getCurrentNepalieFiscalYear(),
         });
         setErrors({});
         onClose();
@@ -158,6 +178,29 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Fiscal Year Selection - Common for both ITR and Estimated Return */}
+                    <div className="space-y-2">
+                        <Label htmlFor="fiscalYear">Fiscal Year *</Label>
+                        <Select
+                            value={formData.fiscalYear}
+                            onValueChange={(value) => handleInputChange('fiscalYear', value)}
+                        >
+                            <SelectTrigger className={errors.fiscalYear ? 'border-red-500' : ''}>
+                                <SelectValue placeholder="Select Fiscal Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {generateFiscalYearOptions(10, 2).map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.fiscalYear && (
+                            <p className="text-red-500 text-sm mt-1">{errors.fiscalYear}</p>
+                        )}
+                    </div>
+
                     {isITR && (
                         <>
                             <div className="space-y-2">

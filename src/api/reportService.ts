@@ -13,4 +13,14 @@ export const reportService = {
     const response = await axiosInstance.get("/report/user-monthly");
     return response;
   },
+  async getITRReport(fiscalYear?: string) {
+    const params = fiscalYear ? { fiscalYear } : {};
+    const response = await axiosInstance.get("/report/itr", { params });
+    return response;
+  },
+  async getEstimatedReturnReport(fiscalYear?: string) {
+    const params = fiscalYear ? { fiscalYear } : {};
+    const response = await axiosInstance.get("/report/estimated-return", { params });
+    return response;
+  },
 };

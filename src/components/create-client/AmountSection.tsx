@@ -5,20 +5,23 @@ import { Skeleton } from '../../components/ui/skeleton';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { 
-  Calculator, 
-  Calendar, 
-  CreditCard, 
-  Download, 
-  FileSpreadsheet, 
+import {
+  Calculator,
+  Calendar,
+  CreditCard,
+  Download,
+  FileSpreadsheet,
   Search,
   ChevronDown,
   ChevronRight,
   History,
-  Building
+  Building,
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 import { useGetAmountByCLientId } from '../../api/useclient';
 import * as XLSX from 'xlsx';
+import { useNavigate } from 'react-router-dom';
 
 interface MaskebariRecord {
   _id: string;
@@ -85,6 +88,9 @@ const MaskebariRecords: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
+
+  const navigate = useNavigate();
+
   const formatCurrency = (amount: number): string => {
     if (isNaN(amount)) return 'NRs 0.00';
     return new Intl.NumberFormat('en-NP', {
@@ -95,7 +101,7 @@ const MaskebariRecords: React.FC = () => {
     }).format(amount).replace('NPR', 'NRs');
   };
 
-  
+
 
   const getCreditBalanceColor = (balance: number): string => {
     if (balance > 0) return 'text-green-600';
@@ -120,43 +126,43 @@ const MaskebariRecords: React.FC = () => {
   // Process records to filter out duplicates and ensure proper company names
   const processedRecords = useMemo(() => {
     if (!data?.maskebariRecords) return [];
-    
+
     const clientRecordsMap = new Map();
-    
+
     data.maskebariRecords.forEach(record => {
       const clientId = getClientId(record);
       if (!clientId) return;
-      
+
       if (!clientRecordsMap.has(clientId)) {
         clientRecordsMap.set(clientId, []);
       }
       clientRecordsMap.get(clientId).push(record);
     });
-    
+
     const result: MaskebariRecord[] = [];
-    
+
     clientRecordsMap.forEach((records: MaskebariRecord[]) => {
-      records.sort((a: MaskebariRecord, b: MaskebariRecord) => 
+      records.sort((a: MaskebariRecord, b: MaskebariRecord) =>
         new Date(b.maskebariDate).getTime() - new Date(a.maskebariDate).getTime()
       );
-      
-      const latestRecord = {...records[0]};
-      
+
+      const latestRecord = { ...records[0] };
+
       // Set historical records (excluding the latest)
       if (records.length > 1) {
         latestRecord.lastMaskebari = records.slice(1);
       }
-      
+
       result.push(latestRecord);
     });
-    
+
     return result;
   }, [data?.maskebariRecords]);
 
   // Filter records based on search term
   const filteredRecords = useMemo(() => {
     if (!processedRecords.length) return [];
-    
+
     if (!searchTerm.trim()) return processedRecords;
 
     const searchLower = searchTerm.toLowerCase();
@@ -164,10 +170,10 @@ const MaskebariRecords: React.FC = () => {
       const companyName = getCompanyName(record).toLowerCase();
       const date = (record.maskebariDate).toLowerCase().split('T')[0];
       const clientId = getClientId(record).toLowerCase();
-      
-      return companyName.includes(searchLower) || 
-             date.includes(searchLower) || 
-             clientId.includes(searchLower);
+
+      return companyName.includes(searchLower) ||
+        date.includes(searchLower) ||
+        clientId.includes(searchLower);
     });
   }, [processedRecords, searchTerm]);
 
@@ -227,10 +233,10 @@ const MaskebariRecords: React.FC = () => {
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Maskebari Records');
-      
+
       const today = new Date().toISOString().split('T')[0];
       const filename = `Maskebari_Records_${today}.xlsx`;
-      
+
       XLSX.writeFile(workbook, filename);
     } catch (error) {
       console.error('Error exporting to Excel:', error);
@@ -240,10 +246,10 @@ const MaskebariRecords: React.FC = () => {
 
   const exportToCSV = (): void => {
     if (!filteredRecords.length) return;
-    
+
     const csvData = [
-      ['S.N.', 'Type', 'Date', 'Company Name', 'Client ID', 'Vatable Sales', 'VAT Free Sales', 
-       'Vatable Purchase', 'Custom Purchase', 'VAT Free Purchase', 'Credit Balance']
+      ['S.N.', 'Type', 'Date', 'Company Name', 'Client ID', 'Vatable Sales', 'VAT Free Sales',
+        'Vatable Purchase', 'Custom Purchase', 'VAT Free Purchase', 'Credit Balance']
     ];
 
     filteredRecords.forEach((record, index) => {
@@ -281,7 +287,7 @@ const MaskebariRecords: React.FC = () => {
     });
 
     try {
-      const csvContent = csvData.map(row => 
+      const csvContent = csvData.map(row =>
         row.map(field => `"${field}"`).join(',')
       ).join('\n');
 
@@ -343,29 +349,57 @@ const MaskebariRecords: React.FC = () => {
   return (
     <Card className="mt-4">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Maskebari Records
+        <CardTitle className="flex flex-wrap items-center justify-between gap-4">
+          {/* Left Section */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              <span className="ml-2">Maskebari Records</span>
+            </div>
+
+            {/* Buttons container */}
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                className="flex flex-row items-center justify-center gap-2 cursor-pointer"
+                onClick={() => navigate('/reports/itr')}
+              >
+                <FileText className="h-6 w-6" />
+                <span>ITR Report</span>
+              </Button>
+
+              <Button
+                variant="outline"
+                className="flex flex-row items-center justify-center gap-2 cursor-pointer"
+                onClick={() => navigate('/reports/estimated-return')}
+              >
+                <TrendingUp className="h-6 w-6" />
+                <span>Estimated Return Report</span>
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="ml-2">
-              {filteredRecords.length} of {processedRecords.length} Record{(processedRecords.length || 0) !== 1 ? 's' : ''}
+
+          {/* Right Section */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline">
+              {filteredRecords.length} of {processedRecords.length} Record
+              {(processedRecords.length || 0) !== 1 ? "s" : ""}
             </Badge>
+
             {filteredRecords.length > 0 && (
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={exportToExcel}
                   className="flex items-center gap-2"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   Export Excel
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={exportToCSV}
                   className="flex items-center gap-2"
                 >
@@ -376,6 +410,7 @@ const MaskebariRecords: React.FC = () => {
             )}
           </div>
         </CardTitle>
+
       </CardHeader>
       <CardContent>
         {processedRecords.length === 0 ? (
@@ -443,7 +478,7 @@ const MaskebariRecords: React.FC = () => {
                             Company Name
                           </div>
                         </TableHead>
-                       
+
                         <TableHead className="font-semibold text-center min-w-[120px]">
                           <div className="text-green-700">
                             Vatable Sales
@@ -481,14 +516,13 @@ const MaskebariRecords: React.FC = () => {
                       {filteredRecords.map((record, index) => {
                         const hasHistory = record.lastMaskebari && record.lastMaskebari.length > 0;
                         const isExpanded = expandedRows.has(record._id);
-                        
+
                         return (
                           <React.Fragment key={record._id}>
                             {/* Main Record Row */}
-                            <TableRow 
-                              className={`hover:bg-muted/30 transition-colors ${
-                                index === 0 ? 'bg-yellow-50/30' : ''
-                              }`}
+                            <TableRow
+                              className={`hover:bg-muted/30 transition-colors ${index === 0 ? 'bg-yellow-50/30' : ''
+                                }`}
                             >
                               <TableCell>
                                 {hasHistory && (
@@ -524,7 +558,7 @@ const MaskebariRecords: React.FC = () => {
                                   {getCompanyName(record)}
                                 </span>
                               </TableCell>
-                              
+
                               <TableCell className="text-center">
                                 <span className="font-medium text-green-700">
                                   {(record.vatableSales || 0) < 0 ? '-' : ''}{formatCurrency(Math.abs(record.vatableSales || 0))}
@@ -556,7 +590,7 @@ const MaskebariRecords: React.FC = () => {
                                 </span>
                               </TableCell>
                             </TableRow>
-                            
+
                             {/* Historical Records Dropdown Content */}
                             {hasHistory && isExpanded && (
                               <TableRow>
@@ -571,7 +605,7 @@ const MaskebariRecords: React.FC = () => {
                                     </div>
                                     <div className="space-y-3">
                                       {record.lastMaskebari!.map((histRecord, histIndex) => (
-                                        <div 
+                                        <div
                                           key={`${record._id}-hist-${histIndex}`}
                                           className="bg-white rounded-lg border border-blue-200 p-4 shadow-sm"
                                         >
@@ -588,7 +622,7 @@ const MaskebariRecords: React.FC = () => {
                                                 {getCompanyName(histRecord)}
                                               </div>
                                             </div>
-                                           
+
                                             <div>
                                               <span className="font-medium text-gray-600">Vatable Sales:</span>
                                               <div className="text-green-600 font-medium">
@@ -636,7 +670,7 @@ const MaskebariRecords: React.FC = () => {
                           </React.Fragment>
                         );
                       })}
-                      
+
                       {filteredRecords.length === 0 && searchTerm && (
                         <TableRow>
                           <TableCell colSpan={10} className="text-center py-8">

@@ -7,7 +7,7 @@ import { ChartBarStacked } from "./chart-bar-stacked";
 
 
 const Report = () => {
-const {data:tasks,isLoading,isError}=useGetTasks()
+  const { data: tasks, isLoading, isError } = useGetTasks()
 
   const allTasks = tasks?.tasks || [];
   const ITRCount = allTasks.filter((task: any) => task.taskType === "ITR").length;
@@ -32,7 +32,7 @@ const {data:tasks,isLoading,isError}=useGetTasks()
       label: "Trimester Tasks",
       data: isLoading ? "Loading..." : TrimesterCount.toString(),
     },
- 
+
   ];
 
   if (isError) {
@@ -47,6 +47,9 @@ const {data:tasks,isLoading,isError}=useGetTasks()
         ))}
       </div>
 
+      {/* Specialized Reports Section */}
+
+
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mt-6 sm:mt-8">
         <div className="w-full min-h-[300px] sm:min-h-[400px]">
           <ChartBarStacked />
@@ -55,9 +58,9 @@ const {data:tasks,isLoading,isError}=useGetTasks()
           <ChartAreaUsers />
         </div>
       </div>
-      
-      {/* customer stats starts */}
-      <div className="mt-6 sm:mt-8">
+
+      {/* MaskebariRecords */}
+      <div >
         <MaskebariRecords />
       </div>
     </div>
