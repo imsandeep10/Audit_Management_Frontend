@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -62,6 +62,20 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
 
     const isITR = task?.taskType?.toLowerCase() === "itr";
     const isEstimatedReturn = task?.taskType?.toLowerCase() === "estimated return";
+
+    // Initialize form from existing task data if present
+    useEffect(() => {
+        if (!task) return;
+        const anyTask: any = task as any;
+        const initial: ITREstimatedData = {
+            taxableAmount: Number(anyTask?.itrData?.taxableAmount ?? anyTask?.taxableAmount ?? 0),
+            taxAmount: Number(anyTask?.itrData?.taxAmount ?? anyTask?.taxAmount ?? 0),
+            taskAmount: Number(anyTask?.itrData?.taskAmount ?? anyTask?.taskAmount ?? 0),
+            estimatedRevenue: Number(anyTask?.estimatedReturnData?.estimatedRevenue ?? anyTask?.estimatedRevenue ?? 0),
+            netProfit: Number(anyTask?.estimatedReturnData?.netProfit ?? anyTask?.netProfit ?? 0),
+        };
+        setFormData(initial);
+    }, [task]);
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};

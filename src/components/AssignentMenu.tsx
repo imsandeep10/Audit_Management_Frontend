@@ -73,6 +73,11 @@ import type { Task } from "../types/api";
 import NoteConversationDialog from "./notes/NoteConversationDialog";
 import { useAuth } from "../contexts/AuthContext";
 import AmountDialog from "../employee/dashboard/AmountDialog";
+import ITREstimatedDialog, {
+  type ITREstimatedData,
+  type TaskWithITRData,
+} from "../employee/dashboard/ITREstimatedDialog";
+import { useUpdateEstimatedReturnByTaskId, useUpdateITRByTaskId } from "../api/useReport";
 
 // Client Select Component
 function ClientSelect({
@@ -791,6 +796,8 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
   >(null);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [amountDialogOpen, setAmountDialogOpen] = useState(false);
+  const [itrEstimatedDialogOpen, setItrEstimatedDialogOpen] = useState(false);
+  const [selectedTaskForITREstimated, setSelectedTaskForITREstimated] = useState<TaskWithITRData | null>(null);
   const [selectedSubTaskForNotes, setSelectedSubTaskForNotes] = useState<{
     subTaskId: string;
     subTaskTitle: string;
@@ -800,6 +807,8 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
   console.log(data)
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const updateITRMutation = useUpdateITRByTaskId();
+  const updateEstimatedMutation = useUpdateEstimatedReturnByTaskId();
 
   const { mutate: deleteTask } = useMutation({
     mutationFn: (taskId: string) => taskService.deleteTaskById(taskId),
@@ -1130,7 +1139,21 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
                 <Button
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   size="sm"
-                  onClick={() => { setAmountDialogOpen(true); setDialogState(null); }}
+                  onClick={() => {
+                    const task: any = data?.task;
+                    const taskType = task?.taskType?.toLowerCase();
+                    // Open ITR/Estimated Return dialog for those types
+                    if (taskType === "itr" || taskType === "estimated return") {
+                      // Pass the entire task so the dialog can read itrData/estimatedReturnData
+                      setSelectedTaskForITREstimated(task as unknown as TaskWithITRData);
+                      setItrEstimatedDialogOpen(true);
+                      setDialogState(null);
+                      return;
+                    }
+                    // Otherwise fallback to Amount dialog
+                    setAmountDialogOpen(true);
+                    setDialogState(null);
+                  }}
                 >
                   Edit Amount
                 </Button>
@@ -1250,6 +1273,43 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
             toast.success("Amounts saved");
           }}
           task={taskForAmountDialog}
+        />
+      )}
+
+      {/* ITR/Estimated Return Dialog */}
+      {selectedTaskForITREstimated && (
+        <ITREstimatedDialog
+          isOpen={itrEstimatedDialogOpen}
+          onClose={() => {
+            setItrEstimatedDialogOpen(false);
+            setSelectedTaskForITREstimated(null);
+          }}
+          onSave={async (data: ITREstimatedData) => {
+            if (!selectedTaskForITREstimated) return;
+            const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
+            if (taskType === "itr") {
+              await updateITRMutation.mutateAsync({
+                taskId: selectedTaskForITREstimated._id,
+                itrData: {
+                  taxableAmount: data.taxableAmount,
+                  taxAmount: data.taxAmount,
+                  taskAmount: data.taskAmount,
+                },
+              });
+            } else if (taskType === "estimated return") {
+              await updateEstimatedMutation.mutateAsync({
+                taskId: selectedTaskForITREstimated._id,
+                estimatedReturnData: {
+                  estimatedRevenue: data.estimatedRevenue,
+                  netProfit: data.netProfit,
+                },
+              });
+            }
+            await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+            await queryClient.invalidateQueries({ queryKey: ["task", selectedTask] });
+            toast.success("Amounts saved");
+          }}
+          task={selectedTaskForITREstimated}
         />
       )}
     </>
