@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { EmployeeTaskService } from "../../api/employeeTaskService";
 import type { Client, EmployeeResponse } from "../../types/employees";
 import {
-  Card,
-  CardHeader,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "../../components/ui/card";
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 import {
   Avatar,
   AvatarFallback,
@@ -17,13 +19,16 @@ import {
 import { Skeleton } from "../../components/ui/skeleton";
 import { useAuth } from "../../contexts/AuthContext";
 import { Button } from "../../components/ui/button";
-import { Label } from "@radix-ui/react-label";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { useState } from "react";
+import { ChevronDownIcon, ChevronRightIcon } from "lucide-react";
+
 export const AssignedClientDetails = () => {
   const { user } = useAuth();
   const employeeId = user?.employee?._id;
   const navigate = useNavigate();
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  // Updated query to match your actual API response structure
   const { data, isLoading, isError, error } = useQuery<EmployeeResponse>({
     queryFn: async () => {
       if (!employeeId) throw new Error("No employee ID");
@@ -34,39 +39,13 @@ export const AssignedClientDetails = () => {
     placeholderData: keepPreviousData,
   });
 
+  // Toggle row expansion - only one row can be expanded at a time
+  const toggleRowExpansion = (clientId: string) => {
+    setExpandedRow(expandedRow === clientId ? null : clientId);
+  };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-1/3" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-[200px]" />
-                    <Skeleton className="h-4 w-[150px]" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Skeleton className="h-10 w-full" />
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  // Extract clients from the nested structure
+  const clients = data?.employee?.assignedClients || [];
 
   if (isError) {
     return (
@@ -79,82 +58,179 @@ export const AssignedClientDetails = () => {
     );
   }
 
-  // Extract clients from the nested structure
-  const clients = data?.employee?.assignedClients || [];
-
-  if (clients.length === 0) {
-    return (
-      <div className="p-4 rounded-lg bg-muted text-center">
-        <p>No clients assigned to this employee</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 mx-auto max-w-7xl p-4">
-      <h2 className="text-2xl font-bold tracking-tight">Assigned Clients</h2>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Client Cards */}
-        <div className="space-y-4">
-          {clients.map((client: Client) => (
-            <Card key={client._id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <Avatar>
-                    {client.profileImageId?.url ? (
-                      <AvatarImage
-                        src={client.profileImageId.url}
-                        alt={client.fullName}
-                      />
-                    ) : null}
-                    <AvatarFallback>
-                      {client.fullName?.charAt(0) || "C"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Label className="text-sm">Company Name</Label>
-                    <CardDescription className="font-bold">{client.companyName}</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Name:</span><span>{client.fullName}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Email:</span><span>{client.email}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Phone:</span><span>{client.phoneNumber}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">IRDID:</span><span>{client.IRDID || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Office:</span><span>{client.IRDoffice || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Nature:</span><span>{client.clientNature || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Client Type:</span><span>{client.clientType || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of Tax Registration:</span><span>{client.dateOfTaxRegistration ? new Date(client.dateOfTaxRegistration).toLocaleDateString() : "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Date of VAT Registration:</span><span>{client.dateOfVatRegistration ? new Date(client.dateOfVatRegistration).toLocaleDateString() : "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Filling Period:</span><span>{client.fillingperiod || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Index File Number:</span><span>{client.indexFileNumber || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">IRD Password:</span><span>{client.irdPassword || "N/A"}</span></div>
-                <div className="flex items-center gap-5"><span className="text-sm font-medium">Registered Under:</span><span>{client.registeredUnder || "N/A"}</span></div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    navigate(`/employee/clients/${client._id}/documents`, {
-                      state: {
-                        clientId: client._id,
-                        clientName: client.fullName,
-                        userType: "employee",
-                        companyName: client.companyName,
-                      },
-                    });
-                  }}
-                >
-                  View Documents
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-        </div>
-      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Client Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableCaption>
+              {clients.length === 0 && !isLoading 
+                ? "No clients assigned to this employee" 
+                : "List of clients assigned to you. Click on a row to view full details."}
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]"></TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Contact Information</TableHead>
+                <TableHead>Tax Information</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                // Skeleton loading state
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-[120px]" />
+                          <Skeleton className="h-4 w-[80px]" />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-[140px]" />
+                        <Skeleton className="h-4 w-[100px]" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-[160px]" />
+                        <Skeleton className="h-4 w-[120px]" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-10 w-[120px] ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                // Actual data
+                clients.map((client: Client) => {
+                  const isExpanded = expandedRow === client._id;
+                  
+                  return (
+                    <>
+                      <TableRow 
+                        key={client._id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => toggleRowExpansion(client._id)}
+                      >
+                        <TableCell>
+                          {isExpanded ? (
+                            <ChevronDownIcon className="h-4 w-4" />
+                          ) : (
+                            <ChevronRightIcon className="h-4 w-4" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-4">
+                            <Avatar>
+                              {client.profileImageId?.url ? (
+                                <AvatarImage
+                                  src={client.profileImageId.url}
+                                  alt={client.fullName}
+                                />
+                              ) : null}
+                              <AvatarFallback>
+                                {client.fullName?.charAt(0) || "C"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{client.companyName}</p>
+                              <p className="text-sm text-muted-foreground">{client.fullName}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="text-sm">{client.email}</p>
+                            <p className="text-sm">{client.phoneNumber}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              <span className="font-medium">IRD:</span> {client.IRDID || "N/A"}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Type:</span> {client.clientType || "N/A"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/employee/clients/${client._id}/documents`, {
+                                state: {
+                                  clientId: client._id,
+                                  clientName: client.fullName,
+                                  userType: "employee",
+                                  companyName: client.companyName,
+                                },
+                              });
+                            }}
+                          >
+                            View Documents
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {isExpanded && (
+                        <TableRow key={`${client._id}-details`}>
+                          <TableCell colSpan={5}>
+                            <div className="p-4 bg-muted/30 rounded-lg">
+                              <h4 className="font-semibold mb-3">Complete Client Details</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">Full Name:</span> {client.fullName}</p>
+                                  <p><span className="font-medium">Email:</span> {client.email}</p>
+                                  <p><span className="font-medium">Phone:</span> {client.phoneNumber}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">IRD ID:</span> {client.IRDID || "N/A"}</p>
+                                  <p><span className="font-medium">IRD Office:</span> {client.IRDoffice || "N/A"}</p>
+                                  <p><span className="font-medium">IRD Password:</span> {client.irdPassword || "N/A"}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">Client Nature:</span> {client.clientNature || "N/A"}</p>
+                                  <p><span className="font-medium">Client Type:</span> {client.clientType || "N/A"}</p>
+                                  <p><span className="font-medium">Registered Under:</span> {client.registeredUnder || "N/A"}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">Date of Tax Registration:</span> {client.dateOfTaxRegistration ? new Date(client.dateOfTaxRegistration).toLocaleDateString() : "N/A"}</p>
+                                  <p><span className="font-medium">Date of VAT Registration:</span> {client.dateOfVatRegistration ? new Date(client.dateOfVatRegistration).toLocaleDateString() : "N/A"}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p><span className="font-medium">Filling Period:</span> {client.fillingperiod || "N/A"}</p>
+                                  <p><span className="font-medium">Index File Number:</span> {client.indexFileNumber || "N/A"}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

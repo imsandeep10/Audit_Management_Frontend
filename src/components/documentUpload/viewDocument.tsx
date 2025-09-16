@@ -19,7 +19,6 @@ import {
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { ChevronLeft, ChevronRight, Search, Download, X, MoreVertical, Eye, Trash2 } from 'lucide-react';
-import { formatDate } from '../../utils/date-format';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -334,7 +333,6 @@ export function DocumentsPage() {
                   <TableHead className="min-w-[200px]">Bill Information</TableHead>
                   <TableHead className="min-w-[150px]">Customer Details</TableHead>
                   <TableHead className="min-w-[120px]">Uploaded By</TableHead>
-                  <TableHead className="min-w-[100px]">Date</TableHead>
                   <TableHead className="min-w-[80px]">Size</TableHead>
                   <TableHead className="min-w-[80px]">Actions</TableHead>
                 </TableRow>
@@ -460,7 +458,6 @@ export function DocumentsPage() {
                         '-'
                       )}
                     </TableCell>
-                    <TableCell>{formatDate(doc.uploadDate)}</TableCell>
                     <TableCell>{formatFileSize(doc.size)}</TableCell>
                     <TableCell>
                       <DropdownMenu>

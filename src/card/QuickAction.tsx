@@ -26,7 +26,7 @@ const QuickAction = () => {
             </span>
             <button
               onClick={() => navigate("/settings")}
-              className="text-md bg-transparent hover:bg-[#F0F5FF] text-gray-800 cursor-pointer"
+              className="text-lg bg-transparent hover:bg-[#F0F5FF] text-gray-800 cursor-pointer"
             >
               Change Employee Password
             </button>
@@ -37,7 +37,7 @@ const QuickAction = () => {
             </span>
             <button
               onClick={() => navigate("/all/documents")}
-              className="text-md bg-transparent hover:bg-[#F0F5FF] text-gray-800 cursor-pointer"
+              className="text-lg bg-transparent hover:bg-[#F0F5FF] text-gray-800 cursor-pointer"
             >
               View Client Files
             </button>
