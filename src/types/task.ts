@@ -18,6 +18,7 @@ export type TaskSubmitData = {
   dueDate: string;
   subTasks: { taskTitle: string; status: 'todo' | 'in-progress' | 'completed' | 'cancelled' }[];
   type?: string;
+  period?: 'Monthly' | 'Trimester' | 'ITR' | 'Estimated Return';
 };
 
 export interface ClientDetails {
