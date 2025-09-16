@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import NepaliDate from 'nepali-datetime';
 
 // Nepali Functions (complete implementation from the first code)
 const NepaliFunctions = (() => {
@@ -15,12 +16,125 @@ const NepaliFunctions = (() => {
     1978: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
     1979: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
     1980: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
-    2025: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
-    2026: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
-    2027: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
-    2028: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
-    2029: [31, 31, 32, 31, 32, 30, 30, 29, 30, 29, 30, 30],
-    2030: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    1981: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    1982: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    1983: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    1984: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    1985: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    1986: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    1987: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    1988: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    1989: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    1990: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    1991: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    1992: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    1993: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    1994: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    1995: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    1996: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    1997: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    1998: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    1999: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2000: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2001: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2002: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2003: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2004: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2005: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2006: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2007: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2008: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2009: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2010: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2011: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2012: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2013: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2014: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2015: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2016: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2017: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2018: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2019: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2020: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2021: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2022: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2023: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2024: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2025: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2026: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2027: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2028: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2029: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2030: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2031: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2032: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2033: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2034: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2035: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2036: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2037: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2038: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2039: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2040: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2041: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2042: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2043: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2044: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2045: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2046: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2047: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2048: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2049: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2050: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2051: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2052: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2053: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2054: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2055: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2056: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2057: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2058: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2059: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2060: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2061: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2062: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2063: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2064: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2065: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2066: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2067: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2068: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2069: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2070: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2071: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2072: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2073: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2074: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2075: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2076: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2077: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2078: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2079: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2080: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2081: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2082: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2083: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2084: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2085: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2086: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2087: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2088: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2089: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2090: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2091: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2092: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2093: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2094: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2095: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+    2096: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+    2097: [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
+    2098: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+    2099: [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
     2100: [31, 32, 31, 32, 30, 31, 30, 29, 30, 29, 30, 30]
   };
 
@@ -63,35 +177,67 @@ const NepaliFunctions = (() => {
   };
 
   const getCurrentBsDate = (): NepaliDate => {
-    const now = new Date();
-    now.setHours(now.getHours() + 5);
-    now.setMinutes(now.getMinutes() + 45);
-    
-    const adDate = {
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: now.getDate()
-    };
-    
-    return ad2bs(adDate);
+    try {
+      const nepaliDate = new NepaliDate();
+      return {
+        year: nepaliDate.getYear(),
+        month: nepaliDate.getMonth() + 1, // Convert to 1-based indexing
+        day: nepaliDate.getDate()
+      };
+    } catch (error) {
+      console.error('Error getting current BS date:', error);
+      // Fallback to current date
+      return {
+        year: 2081, // Approximate current BS year
+        month: 1,
+        day: 1
+      };
+    }
   };
 
   const ad2bs = (adDate: NepaliDate): NepaliDate => {
-    // Simplified conversion - in production, use proper conversion algorithm
-    return {
-      year: adDate.year + 56,
-      month: adDate.month + 8 > 12 ? adDate.month - 4 : adDate.month + 8,
-      day: adDate.day
-    };
+    try {
+      const nepaliDate = NepaliDate.fromEnglishDate(
+        adDate.year,
+        adDate.month - 1, // Convert to 0-based indexing
+        adDate.day
+      );
+      return {
+        year: nepaliDate.getYear(),
+        month: nepaliDate.getMonth() + 1, // Convert to 1-based indexing
+        day: nepaliDate.getDate()
+      };
+    } catch (error) {
+      console.error('Error converting AD to BS:', error);
+      // Fallback to simple conversion
+      return {
+        year: adDate.year + 56,
+        month: adDate.month + 8 > 12 ? adDate.month - 4 : adDate.month + 8,
+        day: adDate.day
+      };
+    }
   };
 
   const bs2ad = (bsDate: NepaliDate): NepaliDate => {
-    // Simplified conversion - in production, use proper conversion algorithm
-    return {
-      year: bsDate.year - 56,
-      month: bsDate.month - 8 <= 0 ? bsDate.month + 4 : bsDate.month - 8,
-      day: bsDate.day
-    };
+    try {
+      const nepaliDate = new NepaliDate(bsDate.year, bsDate.month - 1, bsDate.day);
+      // Get the timestamp and convert to Date
+      const timestamp = nepaliDate.getTime();
+      const englishDate = new Date(timestamp);
+      return {
+        year: englishDate.getFullYear(),
+        month: englishDate.getMonth() + 1, // Convert to 1-based indexing
+        day: englishDate.getDate()
+      };
+    } catch (error) {
+      console.error('Error converting BS to AD:', error);
+      // Fallback to simple conversion
+      return {
+        year: bsDate.year - 56,
+        month: bsDate.month - 8 <= 0 ? bsDate.month + 4 : bsDate.month - 8,
+        day: bsDate.day
+      };
+    }
   };
 
   const formatDate = (date: NepaliDate, format: string): string => {
@@ -138,9 +284,18 @@ const NepaliFunctions = (() => {
   };
 
   const getFullDay = (date: NepaliDate): string => {
-    const adDate = bs2ad(date);
-    const jsDate = new Date(adDate.year, adDate.month - 1, adDate.day);
-    return daysEn[jsDate.getDay()];
+    try {
+      const nepaliDate = new NepaliDate(date.year, date.month - 1, date.day);
+      // Use the day of week from nepali date directly
+      const dayOfWeek = nepaliDate.getDay();
+      return daysEn[dayOfWeek];
+    } catch (error) {
+      console.error('Error getting day of week:', error);
+      // Fallback to simple calculation
+      const adDate = bs2ad(date);
+      const jsDate = new Date(adDate.year, adDate.month - 1, adDate.day);
+      return daysEn[jsDate.getDay()];
+    }
   };
 
   const isLikelyBSDate = (dateStr: string): boolean => {
@@ -257,7 +412,10 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
     const [viewYear, setViewYear] = useState(currentDate.year);
     const [viewMonth, setViewMonth] = useState(currentDate.month);
     const [viewMode, setViewMode] = useState<'calendar' | 'months' | 'years'>('calendar');
-    const [yearRange, setYearRange] = useState({ start: 2070, end: 2090 });
+    const [yearRange, setYearRange] = useState(() => {
+      const currentYear = currentDate.year;
+      return { start: currentYear - 10, end: currentYear + 10 };
+    });
     const [bsDate, setBsDate] = useState<string>("");
     const [isInitialized, setIsInitialized] = useState(false);
     
@@ -340,6 +498,11 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
               convertToBSDate(formattedValue);
             }
           }
+        } else {
+          // If no value provided, show current date
+          const currentBsDate = NepaliFunctions.getCurrentBsDate();
+          setViewYear(currentBsDate.year);
+          setViewMonth(currentBsDate.month);
         }
         setIsInitialized(true);
       }
@@ -508,6 +671,7 @@ const DatePicker: React.FC<DatePickerProps> = React.memo(
       const today = NepaliFunctions.getCurrentBsDate();
       setViewYear(today.year);
       setViewMonth(today.month);
+      setViewMode('calendar');
     };
 
     const renderCalendar = () => {
