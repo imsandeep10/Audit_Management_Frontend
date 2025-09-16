@@ -135,6 +135,7 @@ export type Client = {
   companyName: string;
   registrationNumber?: string;
   clientNature?: string;
+  clientType?: string;
   status?: "active" | "inactive";
   assignedEmployees: string[];
   createdAt: string;

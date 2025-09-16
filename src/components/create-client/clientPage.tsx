@@ -1,21 +1,70 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Filter } from "lucide-react";
 import { Button } from "../ui/button";
-import { useGetClients } from "../../api/useclient";
+import { useGetClients, useGetClientTypes } from "../../api/useclient";
 import { createClientColumns } from "./clientColumns";
 import type { Client } from "../../lib/types";
+import type { ClientTypeOption } from "../../types/clientTypes";
 import { useDeleteUser } from "../../api/useUser";
 import { ClientDataTable } from "./client-data-table";
 import { BulkClientUpload } from "./ClientsDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { useState, useMemo } from "react";
 
 export default function ClientPage() {
   const [searchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get("page") || "0");
   const { data, isLoading, error, refetch } = useGetClients(currentPage, 5);
+  const { data: clientTypesResponse, isLoading: isLoadingTypes } = useGetClientTypes();
   const navigate = useNavigate();
   const { mutate: deleteUser } = useDeleteUser();
+  const [clientTypeFilter, setClientTypeFilter] = useState<string>("all");
 
   const columns = createClientColumns(deleteUser, navigate);
+
+  // Client type options from database with "All Types" option
+  const CLIENT_TYPE_OPTIONS = useMemo(() => {
+    const allOption = { value: "all", label: "All Types" };
+    
+    if (!clientTypesResponse?.data || isLoadingTypes) {
+      return [allOption];
+    }
+    
+    const dynamicOptions = clientTypesResponse.data.map((type: ClientTypeOption) => ({
+      value: type.value,
+      label: type.label
+    }));
+    
+    return [allOption, ...dynamicOptions];
+  }, [clientTypesResponse, isLoadingTypes]);
+
+  // Filter clients based on selected client type
+  const filteredClients = useMemo(() => {
+    if (!data?.clients) return [];
+    if (clientTypeFilter === "all") return data.clients;
+    
+    return data.clients.filter((client: Client) => 
+      client.clientType === clientTypeFilter
+    );
+  }, [data?.clients, clientTypeFilter]);
+
+  // Update pagination stats for filtered data
+  const filteredStats = useMemo(() => {
+    const totalFiltered = filteredClients.length;
+    const totalPages = Math.ceil(totalFiltered / 5);
+    
+    return {
+      totalClients: totalFiltered,
+      totalPages,
+      clients: filteredClients
+    };
+  }, [filteredClients]);
 
   const handleRefresh = () => {
     refetch();
@@ -37,24 +86,52 @@ export default function ClientPage() {
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
               <Users className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-700">
-                {data?.pagination?.totalClients || 0}{" "}
-                {data?.pagination?.totalClients === 1 ? "client" : "clients"}
+                {filteredStats.totalClients || 0}{" "}
+                {filteredStats.totalClients === 1 ? "client" : "clients"}
+                {clientTypeFilter !== "all" && (
+                  <span className="text-xs text-blue-600 ml-1">
+                    ({CLIENT_TYPE_OPTIONS.find(opt => opt.value === clientTypeFilter)?.label})
+                  </span>
+                )}
               </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Individual client add */}
-          <Link to="/addclients">
-            <Button className="gap-2 bg-[#210EAB] px-4 py-2 hover:bg-[#210EAB]/90 text-white">
-              <Plus className="h-4 w-4" />
-              Add Client
-            </Button>
-          </Link>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          {/* Client Type Filter */}
+          <div className="flex items-center gap-2 order-2 sm:order-1">
+            <Filter className="h-4 w-4 text-gray-600" />
+            <Select 
+              value={clientTypeFilter} 
+              onValueChange={setClientTypeFilter}
+              disabled={isLoadingTypes}
+            >
+              <SelectTrigger className="w-[150px] h-9">
+                <SelectValue placeholder={isLoadingTypes ? "Loading..." : "Filter by type"} />
+              </SelectTrigger>
+              <SelectContent>
+                {CLIENT_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          {/* Bulk client upload */}
-          <BulkClientUpload onSuccess={handleBulkUploadSuccess} />
+          <div className="flex items-center gap-3 order-1 sm:order-2">
+            {/* Individual client add */}
+            <Link to="/addclients">
+              <Button className="gap-2 bg-[#210EAB] px-4 py-2 hover:bg-[#210EAB]/90 text-white">
+                <Plus className="h-4 w-4" />
+                Add Client
+              </Button>
+            </Link>
+
+            {/* Bulk client upload */}
+            <BulkClientUpload onSuccess={handleBulkUploadSuccess} />
+          </div>
         </div>
       </div>
 
@@ -85,7 +162,7 @@ export default function ClientPage() {
               </Button>
             </div>
           </div>
-        ) : data?.clients?.length === 0 ? (
+        ) : filteredStats.totalClients === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center gap-4 text-center">
               <Users className="h-12 w-12 text-gray-300" />
@@ -117,9 +194,9 @@ export default function ClientPage() {
         ) : (
           <ClientDataTable<Client, unknown>
             columns={columns}
-            data={data?.clients || []}
-            totalPages={data?.pagination?.totalPages || 0}
-            totalItems={data?.pagination?.totalClients || 0}
+            data={filteredStats.clients || []}
+            totalPages={filteredStats.totalPages || 0}
+            totalItems={filteredStats.totalClients || 0}
           />
         )}
       </div>

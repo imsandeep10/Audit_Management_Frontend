@@ -80,6 +80,7 @@ export interface ClientsResponse {
     companyName: string;
     registrationNumber?: string;
     clientNature?: string;
+    clientType?: string;
     status?: "active" | "inactive";
     assignedEmployees: string[];
     createdAt: string;
@@ -118,6 +119,7 @@ export interface Client {
   createdAt: string;
   registrationNumber?: string;
   clientNature?: string;
+  clientType?: string;
   status?: "active" | "inactive";
   updatedAt: string;
   user: User | null;
@@ -134,6 +136,7 @@ export interface ClientFormData {
   address: string;
   phoneNumber: string;
   clientNature: string;
+  clientType: string;
   companyName: string;
   registrationNumber: string;
   IRDID: string;
@@ -304,6 +307,19 @@ export interface DeleteDocumentResponse {
 
 // Re-export API types for convenience
 export type { ApiResponse, ValidationError, ServerErrorResponse } from "./api";
+
+// Client type option from database
+export interface ClientTypeOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export interface ClientTypesResponse {
+  success: boolean;
+  message: string;
+  data: ClientTypeOption[];
+}
 
 // Your form data type (ClientFormData)
 export interface ClientFormDataProps {

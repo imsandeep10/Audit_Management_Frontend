@@ -93,6 +93,14 @@ export const useGetAllClients = () => {
   });
 };
 
+export const useGetClientTypes = () => {
+  return useQuery({
+    queryKey: ["clientTypes"],
+    queryFn: clientService.getClientTypes,
+    staleTime: 5 * 60 * 1000, // 5 minutes - client types don't change often
+  });
+};
+
 export const useGetClientById = (
   id: string,
   options?: { enabeled?: boolean }

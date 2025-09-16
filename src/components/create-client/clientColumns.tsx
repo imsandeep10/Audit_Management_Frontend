@@ -81,6 +81,39 @@ export const createClientColumns = (
     },
 
     {
+      accessorFn: (row) => row.clientType,
+      header: "Client Type",
+      size: 120,
+      cell: ({ row }: { row: Row<Client> }) => {
+        const client = row.original;
+        const clientType = client.clientType;
+
+        const getTypeStyle = (type: string | undefined) => {
+          switch (type?.toLowerCase()) {
+            case 'individual':
+              return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'company':
+              return 'bg-green-100 text-green-800 border-green-200';
+            case 'partnership':
+              return 'bg-purple-100 text-purple-800 border-purple-200';
+            case 'trust':
+              return 'bg-orange-100 text-orange-800 border-orange-200';
+            default:
+              return 'bg-gray-100 text-gray-800 border-gray-200';
+          }
+        };
+
+        return (
+          <div className="flex flex-col gap-1">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getTypeStyle(clientType)}`}>
+              {clientType || "N/A"}
+            </span>
+          </div>
+        );
+      },
+    },
+
+    {
       accessorFn: (row) => row.user?.phoneNumber,
       header: "Phone",
       size: 140,

@@ -1,5 +1,6 @@
 import axiosInstance from "./axiosInstance";
 import type { ApiResponse } from "../types/clientTypes";
+import type { ClientTypesResponse } from "../types/clientTypes";
 import { type ClientFormData } from "../schemas/clientValidation";
 import { AxiosError } from "axios";
 export interface MaskebariAmountsProps{
@@ -44,12 +45,14 @@ export const clientService = {
     return response.data;
   },
 
-  async getAllClients() {
-    const response = await axiosInstance.get(`/client/clients`);
-    return response;
-  },
-
-  async getClient(clientId: string) {
+async getAllClients() {
+  const response = await axiosInstance.get(`/client/clients`);
+  return response;
+},
+async getClientTypes(): Promise<ClientTypesResponse> {
+  const response = await axiosInstance.get(`/client/client-types`);
+  return response.data;
+},  async getClient(clientId: string) {
     const response = await axiosInstance.get(`client/${clientId}`);
     return response.data;
 
