@@ -156,6 +156,7 @@ const createFormSchema = (mode: string) => {
         })
       )
       .min(0),
+    period: z.enum(['Monthly', 'Trimester', 'ITR', 'Estimated Return']).optional(),
   });
 };
 
@@ -207,6 +208,7 @@ export function AddNewTask({
     dueDate: string;
     clientId?: string;
     type?: 'Monthly' | 'Trimester'| "ITR"|'Estimated Return';
+    period?: 'Monthly' | 'Trimester'| "ITR"|'Estimated Return';
     assignedTo?: string[];
     subTasks?: { title: string }[];
   };
@@ -239,6 +241,7 @@ export function AddNewTask({
           clientId: defaultValues.clientId,
           assignedTo: normalizeAssignedTo(defaultValues.assignedTo),
           subTasks: defaultValues.subTasks ?? [{ title: "" }],
+          period: defaultValues.type,
         }
       : {
           taskTitle: "",
@@ -248,6 +251,7 @@ export function AddNewTask({
           assignedTo: [],
           dueDate: "",
           subTasks: [{ title: "" }],
+          period: undefined,
         };
   };
 
@@ -320,6 +324,7 @@ const filteredClients = useMemo(() => {
         clientId: defaultValues.clientId,
         assignedTo: normalizeAssignedTo(defaultValues.assignedTo),
         subTasks: defaultValues.subTasks ?? [{ title: "" }],
+        period: defaultValues.type,
       };
       form.reset(processedValues);
     } else if (defaultValues && mode === "maskebari") {
@@ -344,6 +349,31 @@ const filteredClients = useMemo(() => {
         assignedTo: [],
         subTasks: [],
         type: data.type,
+      };
+      createMaskebari(maskebarData, {
+        onSuccess: () => {
+          form.reset(getDefaultValues());
+          if (onClose) {
+            onClose();
+          }
+        },
+        onError: (error) => {
+          console.error("Failed to create maskebari:", error);
+        },
+      });
+      return;
+    }
+
+    // Check if task has period - route to maskebari hook if it does, otherwise normal task hook
+    if (data.period) {
+      const maskebarData: TaskSubmitData = {
+        taskTitle: data.taskTitle,
+        status: data.status,
+        dueDate: data.dueDate,
+        description: data.description,
+        assignedTo: [],
+        subTasks: [],
+        type: data.period,
       };
       createMaskebari(maskebarData, {
         onSuccess: () => {
@@ -541,37 +571,35 @@ const filteredClients = useMemo(() => {
             
           </div>
 
-          {/* Period Field - Only show for maskebari mode */}
-          {mode === "maskebari" && (
-            <FormField
-              control={form.control as any}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-900">
-                    Period <span className="text-sm text-red-600">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <SelectTrigger className="w-full text-sm h-9">
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Monthly">Monthly</SelectItem>
-                        <SelectItem value="Trimester">Trimester</SelectItem>
-                        <SelectItem value="ITR">ITR</SelectItem>
-                        <SelectItem value="Estimated Return">Estimated Return</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage className="text-xs min-h-0" />
-                </FormItem>
-              )}
-            />
-          )}
+          {/* Period Field - Show for both maskebari and normal task modes */}
+          <FormField
+            control={form.control as any}
+            name={mode === "maskebari" ? "type" : "period"}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-900">
+                  Period {mode === "maskebari" && <span className="text-sm text-red-600">*</span>}
+                </FormLabel>
+                <FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
+                    <SelectTrigger className="w-full text-sm h-9">
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Monthly">Monthly</SelectItem>
+                      <SelectItem value="Trimester">Trimester</SelectItem>
+                      <SelectItem value="ITR">ITR</SelectItem>
+                      <SelectItem value="Estimated Return">Estimated Return</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage className="text-xs min-h-0" />
+              </FormItem>
+            )}
+          />
 
           {/* Task Type Display for Edit Mode */}
           {mode === "edit" && taskData?.taskType && (
