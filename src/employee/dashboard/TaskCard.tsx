@@ -55,14 +55,25 @@ const TaskCard = ({
     currentStatus: string
   ) => {
     // Check if task has a taskType and subtask is being marked as completed
-    if ((task as any).taskType && currentStatus !== "completed") {
-      // Show amount dialog for tasks with taskType when completing
-      setSelectedSubTaskForAmount({ taskId, subTaskId, currentStatus });
-      setAmountDialogOpen(true);
-    } else {
-      // Direct toggle for tasks without taskType or when uncompleting
-      onSubTaskToggle(taskId, subTaskId, currentStatus);
+    const taskType = (task as any)?.taskType?.toLowerCase();
+    
+    if (taskType && currentStatus !== "completed") {
+      // For ITR and Estimated Return, let the parent handle the dialog
+      if (taskType === "itr" || taskType === "estimated return") {
+        onSubTaskToggle(taskId, subTaskId, currentStatus);
+        return;
+      }
+      
+      // For Monthly and Trimester tasks, show amount dialog
+      if (taskType === "monthly" || taskType === "trimester") {
+        setSelectedSubTaskForAmount({ taskId, subTaskId, currentStatus });
+        setAmountDialogOpen(true);
+        return;
+      }
     }
+    
+    // Direct toggle for tasks without taskType or when uncompleting
+    onSubTaskToggle(taskId, subTaskId, currentStatus);
   };
 
   const handleSaveAmount = async () => {

@@ -47,6 +47,12 @@ const EmployeeAssignedTasks = () => {
   const [itrEstimatedDialogOpen, setItrEstimatedDialogOpen] = useState(false);
   const [selectedTaskForITREstimated, setSelectedTaskForITREstimated] = useState<TaskWithITRData | null>(null);
   
+  // Track pending subtask completion for ITR/Estimated Return
+  const [pendingSubTaskCompletion, setPendingSubTaskCompletion] = useState<{
+    taskId: string;
+    subTaskId: string;
+  } | null>(null);
+  
   // Dialog states for notifications
   const [selectedTaskForDialog, setSelectedTaskForDialog] = useState<TaskWithDetails | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
@@ -124,6 +130,30 @@ const EmployeeAssignedTasks = () => {
     currentStatus: string
   ) => {
     try {
+      // Check if subtask is being marked as completed
+      if (currentStatus !== "completed") {
+        const task = tasks?.find((t: TaskWithDetails) => t._id === taskId);
+        const taskType = (task as any)?.taskType?.toLowerCase();
+        
+        // Handle ITR and Estimated Return tasks for subtask completion
+        if (taskType === "itr" || taskType === "estimated return") {
+          // Set pending subtask completion
+          setPendingSubTaskCompletion({ taskId, subTaskId });
+          
+          setSelectedTaskForITREstimated({
+            _id: task!._id,
+            taskTitle: task!.taskTitle,
+            taskType: (task as any)?.taskType || "",
+            description: task!.description,
+            client: task!.client,
+            subTasks: task!.subTasks,
+          });
+          setItrEstimatedDialogOpen(true);
+          return;
+        }
+      }
+      
+      // For other task types or when uncompleting, update status directly
       const newStatus =
         currentStatus === "completed" ? "in-progress" : "completed";
       updateStatus({
@@ -206,11 +236,9 @@ const EmployeeAssignedTasks = () => {
       try {
         const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
         
-        console.log("Saving ITR/Estimated data:", {
-          taskType,
-          fiscalYear: data.fiscalYear,
-          data
-        });
+        console.log("Saving ITR/Estimated data:", data);
+        console.log("Task type:", taskType);
+        console.log("Fiscal year:", data.fiscalYear);
         
         if (taskType === "itr") {
           await updateITRMutation.mutateAsync({
@@ -233,12 +261,22 @@ const EmployeeAssignedTasks = () => {
           });
         }
         
-        // Mark task completed and refresh
-        await updateStatus({ taskId: selectedTaskForITREstimated._id, status: "completed" });
+        // Check if this was triggered by a subtask completion
+        // If pendingSubTaskCompletion exists, complete the subtask instead of the main task
+        if (pendingSubTaskCompletion) {
+          await updateStatus({ 
+            taskId: pendingSubTaskCompletion.taskId, 
+            subTaskId: pendingSubTaskCompletion.subTaskId,
+            status: "completed" 
+          });
+          setPendingSubTaskCompletion(null);
+        } else {
+          // Mark main task as completed
+          await updateStatus({ taskId: selectedTaskForITREstimated._id, status: "completed" });
+        }
+        
         await refetch();
-        
-        console.log("Successfully saved and completed task");
-        
+              
         // Close dialog and reset state
         setSelectedTaskForITREstimated(null);
         setItrEstimatedDialogOpen(false);
@@ -458,6 +496,7 @@ const EmployeeAssignedTasks = () => {
               onClose={() => {
                 setItrEstimatedDialogOpen(false);
                 setSelectedTaskForITREstimated(null);
+                setPendingSubTaskCompletion(null); // Clear pending subtask completion
               }}
               onSave={handleSaveITREstimatedData}
               task={selectedTaskForITREstimated}

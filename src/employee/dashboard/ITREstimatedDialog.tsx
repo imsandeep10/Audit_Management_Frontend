@@ -188,6 +188,10 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                         Please fill in the required information for <strong>{task?.taskTitle}</strong>
                         <br />
                         <span className="text-sm text-gray-600">Client: {getClientName()}</span>
+                        <br />
+                        <span className="text-xs text-blue-600 mt-1">
+                            ℹ️ This data will be saved and the task will be marked as completed.
+                        </span>
                     </DialogDescription>
                 </DialogHeader>
 
