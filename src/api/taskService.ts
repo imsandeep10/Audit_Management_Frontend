@@ -23,6 +23,21 @@ export const taskService = {
     }
   },
 
+    async createSingleMaskebariTask(data: TaskSubmitData): Promise<ApiResponse> {
+    try {
+      const response = await axiosInstance.post<ApiResponse>(
+        "/task/create-single-maskebari",
+        data
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response) {
+        throw error;
+      }
+      throw error;
+    }
+  },
+
 
   async createMaskebari(data: TaskSubmitData): Promise<ApiResponse> {
     try {

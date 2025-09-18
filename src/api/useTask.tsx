@@ -16,6 +16,20 @@ export const useCreateTask = () => {
     },
   });
 };
+
+export const useCreateSingleMaskebariTask = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: TaskSubmitData) => taskService.createSingleMaskebariTask(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Task created successfully");
+    },
+    onError: () => {
+      toast.error("Failed to create task");
+    },
+  });
+};
 export const useCreateMaskebari = () => {
   const queryClient = useQueryClient();
   return useMutation({

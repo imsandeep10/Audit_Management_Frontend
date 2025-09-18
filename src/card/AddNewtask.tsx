@@ -35,7 +35,12 @@ import {
 } from "../components/ui/popover";
 import { Check, ChevronDown } from "lucide-react";
 import type { TaskSubmitData } from "../types/task";
-import { useCreateMaskebari, useCreateTask, useUpdateTask } from "../api/useTask";
+import { 
+  useCreateMaskebari, 
+  useCreateSingleMaskebariTask, 
+  useCreateTask, 
+  useUpdateTask 
+} from "../api/useTask";
 import { useGetAllClients } from "../api/useclient";
 import { useGetAllEmployees } from "../api/useEmployee";
 import type { Employee } from "../lib/types";
@@ -256,6 +261,7 @@ export function AddNewTask({
   };
 
   const processedDefaultValues = getDefaultValues();
+  const createSingleMaskebari = useCreateSingleMaskebariTask();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(createFormSchema(mode)) as any,
@@ -312,7 +318,7 @@ const filteredClients = useMemo(() => {
   });
 }, [mode, periodType, clientList]);
 
-  const isPending = isCreating || isUpdating || isCreatingMaskebari;
+  const isPending = isCreating || isUpdating || isCreatingMaskebari || createSingleMaskebari.isPending;
 
   useEffect(() => {
     if (defaultValues && mode === "edit") {
@@ -340,6 +346,7 @@ const filteredClients = useMemo(() => {
   }, [defaultValues, mode, form, normalizeAssignedTo]);
 
   const onSubmit = (data: FormValues) => {
+    console.log(data)
     if (mode === "maskebari") {
       const maskebarData: TaskSubmitData = {
         taskTitle: data.taskTitle,
@@ -364,18 +371,25 @@ const filteredClients = useMemo(() => {
       return;
     }
 
-    // Check if task has period - route to maskebari hook if it does, otherwise normal task hook
-    if (data.period) {
-      const maskebarData: TaskSubmitData = {
+    // Check if task has period - route to single maskebari hook if it does
+    if (data.period && data.clientId && data.assignedTo && data.assignedTo.length > 0) {
+      const singleMaskebariData: TaskSubmitData = {
         taskTitle: data.taskTitle,
         status: data.status,
         dueDate: data.dueDate,
         description: data.description,
-        assignedTo: [],
-        subTasks: [],
+        clientId: data.clientId,
+        assignedTo: data.assignedTo,
+        subTasks: (data.subTasks || [])
+          .filter((task) => task.title.trim() !== "")
+          .map((task) => ({
+            taskTitle: task.title,
+            status: "todo" as const,
+          })),
         type: data.period,
       };
-      createMaskebari(maskebarData, {
+      
+      createSingleMaskebari.mutate(singleMaskebariData, {
         onSuccess: () => {
           form.reset(getDefaultValues());
           if (onClose) {
@@ -383,7 +397,7 @@ const filteredClients = useMemo(() => {
           }
         },
         onError: (error) => {
-          console.error("Failed to create maskebari:", error);
+          console.error("Failed to create single maskebari:", error);
         },
       });
       return;
@@ -694,7 +708,7 @@ const filteredClients = useMemo(() => {
                   {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2">
                       <FormItem className="flex-1">
-                        <FormLabel className="sr-only">Sub Task {index + 1}</FormLabel>
+                        <FormLabel className="sr-only">Sub Task ${index + 1}</FormLabel>
                         <FormControl>
                           <Input
                             type="text"

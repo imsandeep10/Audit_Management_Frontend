@@ -16,7 +16,7 @@ export type TaskSubmitData = {
   assignedTo: string[];
   clientId?: string;
   dueDate: string;
-  subTasks: { taskTitle: string; status: 'todo' | 'in-progress' | 'completed' | 'cancelled' }[];
+  subTasks?: { taskTitle: string; status: 'todo' | 'in-progress' | 'completed' | 'cancelled' }[];
   type?: string;
   period?: 'Monthly' | 'Trimester' | 'ITR' | 'Estimated Return';
 };
