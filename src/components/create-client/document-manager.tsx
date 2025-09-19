@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useClientStatsSummary } from '../../hooks/useClientStatsSummary';
 import { useClientDocuments, useDeleteDocument, useDownloadDocumentsZip, useDownloadBillsExcel } from '../../hooks/client-document';
 import { useDeleteBill } from '../../api/useBills';
 import { useAuth } from '../../hooks/useAuth';
@@ -90,6 +91,17 @@ const getCurrentNepaliMonth = () => {
 };
 
 export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
+  const location = useLocation();
+  const { userName, clientName, clientId: stateClientId, companyName } = location.state || {};
+  const navigate = useNavigate();
+
+  // Use the clientId from props first, then from state as fallback
+  const resolvedClientId = clientId || stateClientId;
+  const resolvedClientName = clientName || userName;
+  const resolvedCompanyName = companyName || '';
+
+  // Fetch client stats summary
+  const { data: statsSummary, isLoading: statsLoading } = useClientStatsSummary(resolvedClientId);
   const { user } = useAuth();
   const [currentView, setCurrentView] = useState<ViewType>('bills'); // Default to bills view
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,14 +117,9 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const limit = 10; // Changed to 10 for proper document pagination
   const billsPerPage = 10; // 10 bills per page for each type
-  const location = useLocation();
-  const { userName, clientName, clientId: stateClientId, companyName } = location.state || {};
-  const navigate = useNavigate();
 
   // Use the clientId from props first, then from state as fallback
-  const resolvedClientId = clientId || stateClientId;
-  const resolvedClientName = clientName || userName;
-  const resolvedCompanyName = companyName || '';
+  // ...existing code...
 
   // Determine the actual user type - use passed userType or derive from auth context
   const actualUserType = userType || user?.role || 'admin';
@@ -717,8 +724,7 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
           <div className="text-sm text-muted-foreground">
             {currentView === 'documents'
               ? `Showing ${(page - 1) * limit + 1}-${Math.min(page * limit, data.documentsPagination?.totalCount || 0)} of ${data.documentsPagination?.totalCount || 0} documents`
-              : `Showing ${data.bills?.length || 0} bills`
-            }
+              : `Showing ${data?.billsPagination?.totalBills || 0} bills`}
           </div>
         )}
       </div>
@@ -727,69 +733,38 @@ export function DocumentManager({ clientId, userType }: DocumentManagerProps) {
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{data?.documentsPagination?.totalCount || 0}</div>
-            <div className="text-sm text-muted-foreground">
-              Total Documents
-              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
-            </div>
+            <div className="text-2xl font-bold">{statsLoading ? '...' : statsSummary?.totalDocuments ?? 0}</div>
+            <div className="text-sm text-muted-foreground">Total Documents</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{data?.billsPagination?.totalBills || 0}</div>
-            <div className="text-sm text-muted-foreground">
-              Total Bills
-              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
-              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
-            </div>
+            <div className="text-2xl font-bold">{statsLoading ? '...' : statsSummary?.totalBills ?? 0}</div>
+            <div className="text-sm text-muted-foreground">Total Bills</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
-              {data?.bills?.filter(bill => bill.billType === 'sales').length || 0}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Sales Bills
-              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
-              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
-            </div>
+            <div className="text-2xl font-bold">{statsLoading ? '...' : statsSummary?.totalSalesBills ?? 0}</div>
+            <div className="text-sm text-muted-foreground">Sales Bills</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold">
-              {data?.bills?.filter(bill => bill.billType === 'purchase').length || 0}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Purchase Bills
-              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
-              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
-            </div>
+            <div className="text-2xl font-bold">{statsLoading ? '...' : statsSummary?.totalPurchaseBills ?? 0}</div>
+            <div className="text-sm text-muted-foreground">Purchase Bills</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
-              NRs {data?.billAmountStats?.salesTotal?.toLocaleString() || '0'}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Sales Total
-              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
-              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{statsLoading ? '...' : `NRs ${statsSummary?.totalSalesAmount?.toLocaleString() ?? '0'}`}</div>
+            <div className="text-sm text-muted-foreground">Sales Total</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">
-              NRs {data?.billAmountStats?.purchaseTotal?.toLocaleString() || '0'}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Purchase Total
-              {fiscalYearFilter && fiscalYearFilter !== getCurrentNepalieFiscalYear() ? ` (${fiscalYearFilter})` : ' (Current FY)'}
-              {nepaliMonthFilter !== 'all' ? ` - ${NEPALI_MONTHS.find(m => m.value === nepaliMonthFilter)?.label || 'Selected Month'}` : ''}
-            </div>
+            <div className="text-2xl font-bold text-blue-600">{statsLoading ? '...' : `NRs ${statsSummary?.totalPurchaseAmount?.toLocaleString() ?? '0'}`}</div>
+            <div className="text-sm text-muted-foreground">Purchase Total</div>
           </CardContent>
         </Card>
       </div>

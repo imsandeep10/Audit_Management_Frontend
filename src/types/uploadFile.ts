@@ -16,6 +16,7 @@ export interface UploadProgress {
 export interface FileUploadFieldProps {
   name: string;
   onFilesChange: (files: FileWithPreview[]) => void;
+  files?: FileWithPreview[];
   maxFiles?: number;
   acceptedFileTypes?: string[];
   maxFileSize?: number; // in MB
