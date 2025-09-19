@@ -58,7 +58,6 @@ const Assignment: React.FC = () => {
 
   const { data: tasksResponse, isLoading } = useGetTasks(currentStatus);
   const tasks = tasksResponse?.tasks || [];
-  console.log(tasks)
   const { data: clientsResponse } = useGetAllClients();
   const clients = clientsResponse?.data?.clients || []; // Assuming clients are included in the response
 

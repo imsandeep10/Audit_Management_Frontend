@@ -804,7 +804,6 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
   } | null>(null);
 
   const { data, isLoading, error } = useGetTaskById(selectedTask || undefined);
-  console.log(data)
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const updateITRMutation = useUpdateITRByTaskId();

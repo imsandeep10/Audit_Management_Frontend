@@ -346,7 +346,6 @@ const filteredClients = useMemo(() => {
   }, [defaultValues, mode, form, normalizeAssignedTo]);
 
   const onSubmit = (data: FormValues) => {
-    console.log(data)
     if (mode === "maskebari") {
       const maskebarData: TaskSubmitData = {
         taskTitle: data.taskTitle,

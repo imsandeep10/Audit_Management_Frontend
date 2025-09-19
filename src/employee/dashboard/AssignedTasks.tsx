@@ -236,10 +236,6 @@ const EmployeeAssignedTasks = () => {
       try {
         const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
         
-        console.log("Saving ITR/Estimated data:", data);
-        console.log("Task type:", taskType);
-        console.log("Fiscal year:", data.fiscalYear);
-        
         if (taskType === "itr") {
           await updateITRMutation.mutateAsync({
             taskId: selectedTaskForITREstimated._id,

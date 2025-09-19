@@ -90,9 +90,6 @@ const AmountDialog = ({
   const updateAmountMutation = useUpdateAmount();
   const { data: existingAmountsResponse } = useGetAmountsbyTaskId(task._id, { enabled: isOpen });
 
-  console.log(task,"TASK FOR AMOUNT DIALOG")
-  console.log(existingAmountsResponse)
-
   const existingAmountsByClientId = useMemo(() => {
     // Normalize API response to an array of records
     const list = Array.isArray(existingAmountsResponse)
