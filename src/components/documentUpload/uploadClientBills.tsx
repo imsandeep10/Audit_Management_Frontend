@@ -344,7 +344,7 @@ export const UploadClientBills = () => {
           billType: "purchase",
         });
         // Navigate back to document manager after successful update
-        navigate('/document-manager', { 
+        navigate(`/clients/${clientId}/documents`, {
           state: { 
             clientId, 
             clientName, 
@@ -625,6 +625,7 @@ export const UploadClientBills = () => {
               </label>
               <FileUploadField
                 name="salesFiles"
+                files={billsForm.watch('sales.files')}
                 onFilesChange={handleBillsFilesChange("sales")}
                 className={`min-h-[${UI_CONSTANTS.MIN_FILE_UPLOAD_HEIGHT}]`}
                 disabled={isUploading.sales}
@@ -850,6 +851,7 @@ export const UploadClientBills = () => {
               </label>
               <FileUploadField
                 name="purchaseFiles"
+                files={billsForm.watch('purchase.files')}
                 onFilesChange={handleBillsFilesChange("purchase")}
                 className={`min-h-[${UI_CONSTANTS.MIN_FILE_UPLOAD_HEIGHT}]`}
                 disabled={isUploading.purchase}

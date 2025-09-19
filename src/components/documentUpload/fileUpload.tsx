@@ -10,6 +10,7 @@ import {
 
 export const FileUploadField: React.FC<FileUploadFieldProps> = ({
   onFilesChange,
+  files = [],
   maxFiles = 5,
   acceptedFileTypes = [
     "application/pdf",
@@ -28,7 +29,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
   label,
   className,
 }) => {
-  const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback(
@@ -52,7 +52,6 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
       });
 
       const updatedFiles = [...files, ...newFiles].slice(0, maxFiles);
-      setFiles(updatedFiles);
       onFilesChange(updatedFiles);
     },
     [files, onFilesChange, maxFiles]
@@ -71,17 +70,14 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
   const removeFile = useCallback(
     (fileId: string) => {
-      setFiles((current) => {
-        const file = current.find((f) => f.id === fileId);
-        if (file?.preview) {
-          URL.revokeObjectURL(file.preview);
-        }
-        const updatedFiles = current.filter((f) => f.id !== fileId);
-        onFilesChange(updatedFiles);
-        return updatedFiles;
-      });
+      const file = files.find((f) => f.id === fileId);
+      if (file?.preview) {
+        URL.revokeObjectURL(file.preview);
+      }
+      const updatedFiles = files.filter((f) => f.id !== fileId);
+      onFilesChange(updatedFiles);
     },
-    [onFilesChange]
+    [files, onFilesChange]
   );
 
   return (
