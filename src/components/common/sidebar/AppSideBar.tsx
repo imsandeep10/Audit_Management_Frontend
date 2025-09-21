@@ -13,7 +13,7 @@ import { sideBarList } from "../../../constant/sidebarList";
 import SideBarFooter from "./SideBarFooter";
 
 import type { menuItem, menuSection } from "../../../lib/types";
-import Logo from "../../../../public/logo.png";
+import Logo from "../../../assets/logo.png";
 
 
 const AppsideBar = () => {
