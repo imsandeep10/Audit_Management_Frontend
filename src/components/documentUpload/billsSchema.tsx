@@ -34,7 +34,10 @@ export const salesBillSchema = z.object({
   customerPan: customerPanSchema,
   files: z.array(z.instanceof(File)).optional().default([]),
   documentIds: z.array(z.string()).optional().default([]),
-  amount: z.number().min(1, "Amount must be a positive number"),
+  amount: z.number().refine(
+    (val) => !isNaN(val) && isFinite(val),
+    "Amount must be a valid number (positive or negative)"
+  ),
   phoneNumber: phoneNumberSchema,
   registrationType: registrationTypeSchema,
 });
@@ -48,7 +51,10 @@ export const purchaseBillSchema = z.object({
   customerPan: customerPanSchema,
   files: z.array(z.instanceof(File)).optional().default([]),
   documentIds: z.array(z.string()).optional().default([]),
-  amount: z.number().min(1, "Amount must be a positive number"),
+  amount: z.number().refine(
+    (val) => !isNaN(val) && isFinite(val),
+    "Amount must be a valid number (positive or negative)"
+  ),
   phoneNumber: phoneNumberSchema,
   registrationType: registrationTypeSchema,
 });

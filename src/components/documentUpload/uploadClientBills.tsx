@@ -170,13 +170,23 @@ export const UploadClientBills = () => {
     });
   };
 
-  // Amount input handler - fixed version
+  // Amount input handler - updated to allow negative values
   const handleAmountInput = (e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
     let value = target.value;
     
-    // Remove any non-numeric characters except decimal point
-    value = value.replace(/[^0-9.]/g, "");
+    // Allow negative sign only at the beginning
+    const hasNegativeSign = value.startsWith('-');
+    
+    // Remove any non-numeric characters except decimal point and negative sign
+    value = value.replace(/[^0-9.-]/g, "");
+    
+    // Ensure negative sign is only at the beginning
+    if (hasNegativeSign && !value.startsWith('-')) {
+      value = '-' + value.replace(/-/g, '');
+    } else if (!hasNegativeSign) {
+      value = value.replace(/-/g, '');
+    }
     
     // Handle multiple decimal points - keep only the first one
     const decimalIndex = value.indexOf(".");
@@ -190,6 +200,14 @@ export const UploadClientBills = () => {
     const parts = value.split(".");
     if (parts[1] && parts[1].length > 2) {
       value = parts[0] + "." + parts[1].substring(0, 2);
+    }
+    
+    // Handle edge case where user types just "-" or "-."
+    if (value === '-' || value === '-.') {
+      // Allow these intermediate states during typing
+    } else if (value !== '' && isNaN(parseFloat(value))) {
+      // If it's not a valid number and not an intermediate state, clear it
+      value = '';
     }
     
     target.value = value;
