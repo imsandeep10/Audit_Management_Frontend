@@ -37,6 +37,26 @@ export const clientService = {
     return response.data;
   },
 
+  async filterClients(filters: {
+    clientNature?: string;
+    irdOffice?: string;
+    fillingPeriod?: string;
+    registerUnder?: string;
+    clientType?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const response = await axiosInstance.get("/client/filter", {
+      params: filters,
+    });
+    return response.data;
+  },
+
+  async getFilterOptions() {
+    const response = await axiosInstance.get("/client/filter-options");
+    return response.data;
+  },
+
   async uploadDocumentAPI(clientId: string, formData: FormData) {
     const response = await axiosInstance.post(
       `/files/documents/${clientId}`,

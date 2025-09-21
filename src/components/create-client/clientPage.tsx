@@ -1,10 +1,8 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Users, Filter } from "lucide-react";
+import { Plus, Users, Filter, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { useGetClients, useGetClientTypes } from "../../api/useclient";
 import { createClientColumns } from "./clientColumns";
 import type { Client } from "../../lib/types";
-import type { ClientTypeOption } from "../../types/clientTypes";
 import { useDeleteUser } from "../../api/useUser";
 import { ClientDataTable } from "./client-data-table";
 import { BulkClientUpload } from "./ClientsDialog";
@@ -15,64 +13,144 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { clientService } from "../../api/clientService";
 
 export default function ClientPage() {
   const [searchParams] = useSearchParams();
   const currentPage = parseInt(searchParams.get("page") || "0");
-  const { data, isLoading, error, refetch } = useGetClients(currentPage, 5);
-  const { data: clientTypesResponse, isLoading: isLoadingTypes } = useGetClientTypes();
   const navigate = useNavigate();
   const { mutate: deleteUser } = useDeleteUser();
-  const [clientTypeFilter, setClientTypeFilter] = useState<string>("all");
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    clientNature: undefined,
+    irdOffice: undefined,
+    fillingPeriod: undefined,
+    registerUnder: undefined,
+    clientType: undefined,
+  });
+  
+  // Data states
+  const [clients, setClients] = useState([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 0,
+    totalPages: 0,
+    totalClients: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+  const [filterOptions, setFilterOptions] = useState({
+    clientNatures: [],
+    irdOffices: [],
+    fillingPeriods: [],
+    registerUnders: [],
+    clientTypes: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const columns = createClientColumns(deleteUser, navigate);
 
-  // Client type options from database with "All Types" option
-  const CLIENT_TYPE_OPTIONS = useMemo(() => {
-    const allOption = { value: "all", label: "All Types" };
-    
-    if (!clientTypesResponse?.data || isLoadingTypes) {
-      return [allOption];
-    }
-    
-    const dynamicOptions = clientTypesResponse.data.map((type: ClientTypeOption) => ({
-      value: type.value,
-      label: type.label
-    }));
-    
-    return [allOption, ...dynamicOptions];
-  }, [clientTypesResponse, isLoadingTypes]);
-
-  // Filter clients based on selected client type
-  const filteredClients = useMemo(() => {
-    if (!data?.clients) return [];
-    if (clientTypeFilter === "all") return data.clients;
-    
-    return data.clients.filter((client: Client) => 
-      client.clientType === clientTypeFilter
-    );
-  }, [data?.clients, clientTypeFilter]);
-
-  // Update pagination stats for filtered data
-  const filteredStats = useMemo(() => {
-    const totalFiltered = filteredClients.length;
-    const totalPages = Math.ceil(totalFiltered / 5);
-    
-    return {
-      totalClients: totalFiltered,
-      totalPages,
-      clients: filteredClients
+  // Fetch filter options on component mount
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        setIsLoadingFilters(true);
+        const response = await clientService.getFilterOptions();
+        setFilterOptions(response.filterOptions);
+      } catch (err) {
+        console.error("Error fetching filter options:", err);
+      } finally {
+        setIsLoadingFilters(false);
+      }
     };
-  }, [filteredClients]);
+
+    fetchFilterOptions();
+  }, []);
+
+  // Fetch clients based on filters and pagination
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Check if any filters are active
+        const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all');
+        
+        let response;
+        if (hasActiveFilters) {
+          // Use filter endpoint if filters are active
+          const filterParams = {
+            ...filters,
+            page: currentPage,
+            limit: 5,
+          };
+          response = await clientService.filterClients(filterParams);
+        } else {
+          // Use regular endpoint if no filters
+          response = await clientService.getClients(currentPage, 5);
+        }
+        
+        setClients(response.clients || []);
+        setPagination(response.pagination || {});
+      } catch (err) {
+        console.error("Error fetching clients:", err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClients();
+  }, [filters, currentPage]);
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters);
+    // Reset to first page when filters change
+    if (currentPage !== 0) {
+      navigate("?page=0");
+    }
+  };
 
   const handleRefresh = () => {
-    refetch();
+    const fetchClients = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const hasActiveFilters = Object.values(filters).some(value => value && value !== 'all');
+        
+        let response;
+        if (hasActiveFilters) {
+          const filterParams = {
+            ...filters,
+            page: currentPage,
+            limit: 5,
+          };
+          response = await clientService.filterClients(filterParams);
+        } else {
+          response = await clientService.getClients(currentPage, 5);
+        }
+        
+        setClients(response.clients || []);
+        setPagination(response.pagination || {});
+      } catch (err) {
+        console.error("Error fetching clients:", err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClients();
   };
 
   // Handle successful bulk upload
   const handleBulkUploadSuccess = () => {
-    refetch(); // Refresh the clients list after successful upload
+    handleRefresh();
   };
 
   return (
@@ -86,40 +164,14 @@ export default function ClientPage() {
             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full">
               <Users className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-700">
-                {filteredStats.totalClients || 0}{" "}
-                {filteredStats.totalClients === 1 ? "client" : "clients"}
-                {clientTypeFilter !== "all" && (
-                  <span className="text-xs text-blue-600 ml-1">
-                    ({CLIENT_TYPE_OPTIONS.find(opt => opt.value === clientTypeFilter)?.label})
-                  </span>
-                )}
+                {pagination.totalClients || 0}{" "}
+                {pagination.totalClients === 1 ? "client" : "clients"}
               </span>
             </div>
           )}
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          {/* Client Type Filter */}
-          <div className="flex items-center gap-2 order-2 sm:order-1">
-            <Filter className="h-4 w-4 text-gray-600" />
-            <Select 
-              value={clientTypeFilter} 
-              onValueChange={setClientTypeFilter}
-              disabled={isLoadingTypes}
-            >
-              <SelectTrigger className="w-[150px] h-9">
-                <SelectValue placeholder={isLoadingTypes ? "Loading..." : "Filter by type"} />
-              </SelectTrigger>
-              <SelectContent>
-                {CLIENT_TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="flex items-center gap-3 order-1 sm:order-2">
             {/* Individual client add */}
             <Link to="/addclients">
@@ -162,7 +214,7 @@ export default function ClientPage() {
               </Button>
             </div>
           </div>
-        ) : filteredStats.totalClients === 0 ? (
+        ) : pagination.totalClients === 0 ? (
           <div className="flex items-center justify-center h-64">
             <div className="flex flex-col items-center gap-4 text-center">
               <Users className="h-12 w-12 text-gray-300" />
@@ -192,12 +244,163 @@ export default function ClientPage() {
             </div>
           </div>
         ) : (
-          <ClientDataTable<Client, unknown>
-            columns={columns}
-            data={filteredStats.clients || []}
-            totalPages={filteredStats.totalPages || 0}
-            totalItems={filteredStats.totalClients || 0}
-          />
+          <>
+            {/* Filter Controls */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Filter Clients</span>
+                </div>
+                {Object.values(filters).some(value => value) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFiltersChange({})}
+                    className="gap-2 text-xs"
+                    disabled={isLoadingFilters}
+                  >
+                    <X className="h-3 w-3" />
+                    Clear All
+                  </Button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* Client Nature Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">Client Nature</label>
+                  <Select
+                    value={filters.clientNature || 'all'}
+                    onValueChange={(value) => handleFiltersChange({
+                      ...filters,
+                      clientNature: value === 'all' ? undefined : value,
+                    })}
+                    disabled={isLoadingFilters}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Natures" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Natures</SelectItem>
+                      {filterOptions.clientNatures.map((nature: string) => (
+                        <SelectItem key={nature} value={nature}>
+                          {nature}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* IRD Office Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">IRD Office</label>
+                  <Select
+                    value={filters.irdOffice || 'all'}
+                    onValueChange={(value) => handleFiltersChange({
+                      ...filters,
+                      irdOffice: value === 'all' ? undefined : value,
+                    })}
+                    disabled={isLoadingFilters}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Offices" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Offices</SelectItem>
+                      {filterOptions.irdOffices.map((office: string) => (
+                        <SelectItem key={office} value={office}>
+                          {office}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filling Period Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">Filling Period</label>
+                  <Select
+                    value={filters.fillingPeriod || 'all'}
+                    onValueChange={(value) => handleFiltersChange({
+                      ...filters,
+                      fillingPeriod: value === 'all' ? undefined : value,
+                    })}
+                    disabled={isLoadingFilters}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Periods" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Periods</SelectItem>
+                      {filterOptions.fillingPeriods.map((period: string) => (
+                        <SelectItem key={period} value={period}>
+                          {period}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Register Under Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">Register Under</label>
+                  <Select
+                    value={filters.registerUnder || 'all'}
+                    onValueChange={(value) => handleFiltersChange({
+                      ...filters,
+                      registerUnder: value === 'all' ? undefined : value,
+                    })}
+                    disabled={isLoadingFilters}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Registers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Registers</SelectItem>
+                      {filterOptions.registerUnders.map((register: string) => (
+                        <SelectItem key={register} value={register}>
+                          {register.toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Client Type Filter */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-600">Client Type</label>
+                  <Select
+                    value={filters.clientType || 'all'}
+                    onValueChange={(value) => handleFiltersChange({
+                      ...filters,
+                      clientType: value === 'all' ? undefined : value,
+                    })}
+                    disabled={isLoadingFilters}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {filterOptions.clientTypes.map((type: string) => (
+                        <SelectItem key={type} value={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <ClientDataTable<Client, unknown>
+              columns={columns}
+              data={clients || []}
+              totalPages={pagination.totalPages || 0}
+              totalItems={pagination.totalClients || 0}
+            />
+          </>
         )}
       </div>
     </div>
