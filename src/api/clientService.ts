@@ -59,7 +59,7 @@ export const clientService = {
 
   async getClientStatistics(filterType?: string) {
     const params = filterType ? { filterType } : {};
-    const response = await axiosInstance.get("/client/statistics", { params });
+    const response = await axiosInstance.get("/client/reports/statistics", { params });
     return response.data;
   },
 

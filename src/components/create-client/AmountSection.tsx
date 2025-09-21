@@ -475,30 +475,30 @@ const MaskebariRecords: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead className="font-semibold min-w-[50px]">
+                        <TableHead className="font-semibold text-blue-700 min-w-[50px]">
                           History
                         </TableHead>
                         <TableHead className="font-semibold min-w-[120px]">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center text-blue-700 gap-2">
                             <Calendar className="h-4 w-4" />
                             Date
                           </div>
                         </TableHead>
                         <TableHead className="font-semibold min-w-[150px]">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-blue-700">
                             <Building className="h-4 w-4" />
                             Company Name
                           </div>
                         </TableHead>
 
                         <TableHead className="font-semibold text-center min-w-[120px]">
-                          <div className="text-green-700">
+                          <div className="text-blue-700">
                             Total Vatable Sales
                           </div>
                         </TableHead>
 
                         <TableHead className="font-semibold text-center min-w-[120px]">
-                          <div className="text-green-700">
+                          <div className="text-blue-700">
                             Total VAT Free Sales
                           </div>
                         </TableHead>
@@ -574,28 +574,28 @@ const MaskebariRecords: React.FC = () => {
                               </TableCell>
 
                               <TableCell className="text-center">
-                                <span className="font-bold text-blue-700">
+                                <span className="font-bold text-green-800">
                                   {formatCurrency(calculateTotalSum(record, 'vatableSales'))}
                                 </span>
                               </TableCell>
 
                               <TableCell className="text-center">
-                                <span className="font-bold text-green-700">
+                                <span className="font-bold text-green-800">
                                   {formatCurrency(calculateTotalSum(record, 'vatFreeSales'))}
                                 </span>
                               </TableCell>
                               <TableCell className="text-center">
-                                <span className="font-bold text-blue-700">
+                                <span className="font-bold text-green-800">
                                   {formatCurrency(calculateTotalSum(record, 'vatablePurchase'))}
                                 </span>
                               </TableCell>
                               <TableCell className="text-center">
-                                <span className="font-bold text-blue-700">
+                                <span className="font-bold text-green-800">
                                   {formatCurrency(calculateTotalSum(record, 'customPurchase'))}
                                 </span>
                               </TableCell>
                               <TableCell className="text-center">
-                                <span className="font-bold text-blue-700">
+                                <span className="font-bold text-green-800">
                                   {formatCurrency(calculateTotalSum(record, 'vatFreePurchase'))}
                                 </span>
                               </TableCell>
@@ -628,26 +628,26 @@ const MaskebariRecords: React.FC = () => {
                                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                                             <div>
                                               <span className="font-medium text-gray-600">Date:</span>
-                                              <div className="text-blue-700 font-medium">
+                                              <div className="text-blue-600 font-medium">
                                                 {(histRecord.maskebariDate.split('T')[0])}
                                               </div>
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-600">Company:</span>
-                                              <div className="text-blue-700 font-medium">
+                                              <div className="text-blue-600 font-medium">
                                                 {getCompanyName(histRecord)}
                                               </div>
                                             </div>
 
                                             <div>
                                               <span className="font-medium text-gray-600">Vatable Sales:</span>
-                                              <div className="text-green-600 font-medium">
+                                              <div className="text-blue-600 font-medium">
                                                 {formatCurrency(histRecord.vatableSales || 0)}
                                               </div>
                                             </div>
                                             <div>
                                               <span className="font-medium text-gray-600">VAT Free Sales:</span>
-                                              <div className="text-green-600 font-medium">
+                                              <div className="text-blue-600 font-medium">
                                                 {formatCurrency(histRecord.vatFreeSales || 0)}
                                               </div>
                                             </div>
