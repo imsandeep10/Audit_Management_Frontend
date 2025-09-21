@@ -3,6 +3,25 @@ import { taskService } from "./taskService";
 import type { TaskSubmitData } from "../types/task";
 import { toast } from "sonner";
 
+// Helper function to format client eligibility errors
+const formatClientEligibilityError = (errorData: any): string => {
+  let message = errorData.message || "Some clients are not eligible for this task type";
+  
+  if (errorData.ineligibleClients && errorData.ineligibleClients.length > 0) {
+    const clientInfo = errorData.ineligibleClients
+      .map((client: any) => {
+        const period = client.currentPeriod || 'no period set';
+        return `• ${client.name} (currently: ${period})`;
+      })
+      .join('\n');
+    
+    message += `\n\nIneligible clients:\n${clientInfo}`;
+    message += '\n\nPlease either:\n• Select different clients that match the period type\n• Change the task period type\n• Update client filling periods in client management';
+  }
+  
+  return message;
+};
+
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -11,8 +30,15 @@ export const useCreateTask = () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("Task created successfully");
     },
-    onError: () => {
-      toast.error("Failed to create task");
+    onError: (error: any) => {
+      // Extract error message from backend response
+      let errorMessage = "Failed to create task";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     },
   });
 };
@@ -25,8 +51,20 @@ export const useCreateSingleMaskebariTask = () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("Task created successfully");
     },
-    onError: () => {
-      toast.error("Failed to create task");
+    onError: (error: any) => {
+      // Extract error message from backend response
+      let errorMessage = "Failed to create task";
+      
+      if (error?.response?.data) {
+        errorMessage = formatClientEligibilityError(error.response.data);
+      }
+      
+      toast.error(errorMessage, {
+        duration: 8000, // Show longer for detailed error messages
+        style: {
+          whiteSpace: 'pre-line', // Allow line breaks in toast
+        },
+      });
     },
   });
 };
@@ -36,10 +74,22 @@ export const useCreateMaskebari = () => {
     mutationFn: (data: TaskSubmitData) => taskService.createMaskebari(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success("Task created successfully");
+      toast.success("Bulk tasks created successfully");
     },
-    onError: () => {
-      toast.error("Failed to create task");
+    onError: (error: any) => {
+      // Extract error message from backend response
+      let errorMessage = "Failed to create bulk tasks";
+      
+      if (error?.response?.data) {
+        errorMessage = formatClientEligibilityError(error.response.data);
+      }
+      
+      toast.error(errorMessage, {
+        duration: 10000, // Show longer for detailed error messages
+        style: {
+          whiteSpace: 'pre-line', // Allow line breaks in toast
+        },
+      });
     },
   });
 }
@@ -53,8 +103,15 @@ export const useUpdateTask = () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("Task updated successfully");
     },
-    onError: () => {
-      toast.error("Failed to update task");
+    onError: (error: any) => {
+      // Extract error message from backend response
+      let errorMessage = "Failed to update task";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
     },
   });
 };

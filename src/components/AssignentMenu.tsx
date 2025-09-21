@@ -26,6 +26,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Command,
   CommandEmpty,
@@ -67,7 +68,8 @@ import { useMutation } from "@tanstack/react-query";
 
 // Types
 import type { TaskSubmitData } from "../types/task";
-import type { Client, Employee } from "../lib/types";
+import type { Employee } from "../lib/types";
+import type { Client } from "../types/clientTypes";
 import { taskService } from "../api/taskService";
 import type { Task } from "../types/api";
 import NoteConversationDialog from "./notes/NoteConversationDialog";
@@ -240,6 +242,125 @@ function AssigneeSelect({
   );
 }
 
+// Client Multi-Select Component with Enhanced UI
+function ClientMultiSelect({
+  value,
+  onValueChange,
+  clients,
+  taskType,
+}: {
+  value: string[];
+  onValueChange: (value: string[]) => void;
+  clients: Client[];
+  taskType?: string;
+}) {
+  // Filter clients based on task type
+  const filteredClients = useMemo(() => {
+    if (!taskType) return clients;
+    
+    if (taskType === "Monthly" || taskType === "Trimester") {
+      return clients.filter(client => client.fillingperiod === taskType);
+    }
+    
+    // ITR and Estimated Return can be assigned to any client
+    return clients;
+  }, [clients, taskType]);
+
+  const toggleClient = (clientId: string) => {
+    const updatedValue = value.includes(clientId)
+      ? value.filter(id => id !== clientId)
+      : [...value, clientId];
+    onValueChange(updatedValue);
+  };
+
+  const toggleAll = () => {
+    if (value.length === filteredClients.length && filteredClients.length > 0) {
+      onValueChange([]);
+    } else {
+      onValueChange(filteredClients.map(client => client._id));
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Summary */}
+      <div className="flex justify-between items-center text-sm">
+        <span className="text-gray-600">
+          Available clients: {filteredClients.length} | Selected: {value.length}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={toggleAll}
+          className="h-7 px-3 text-xs"
+        >
+          {value.length === filteredClients.length && filteredClients.length > 0 ? "Deselect All" : "Select All"}
+        </Button>
+      </div>
+
+      {/* Client List */}
+      <div className="border rounded-lg max-h-64 overflow-y-auto">
+        {filteredClients.length === 0 ? (
+          <div className="p-4 text-center text-gray-500">
+            {taskType ? `No clients found with ${taskType} period` : "No clients available"}
+          </div>
+        ) : (
+          <div className="space-y-1 p-2">
+            {filteredClients.map((client) => (
+              <div
+                key={client._id}
+                className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  value.includes(client._id)
+                    ? "bg-blue-50 border-blue-200"
+                    : "bg-white border-gray-200 hover:bg-gray-50"
+                }`}
+                onClick={() => toggleClient(client._id)}
+              >
+                <Checkbox
+                  checked={value.includes(client._id)}
+                  onCheckedChange={() => toggleClient(client._id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {client.user?.fullName || "No Name"}
+                      </p>
+                      <p className="text-sm text-gray-600 truncate">
+                        {client.companyName || "No Company"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {client.fillingperiod && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">
+                          {client.fillingperiod}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {client.clientNature && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Nature: {client.clientNature}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {value.length > 0 && (
+        <div className="text-xs text-blue-600">
+          {value.length} client{value.length !== 1 ? 's' : ''} selected for bulk task creation
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Create different schemas based on mode
 const createFormSchema = (mode: string) => {
   const baseFields = {
@@ -255,7 +376,9 @@ const createFormSchema = (mode: string) => {
   if (mode === "maskebari") {
     return z.object({
       ...baseFields,
-      type: z.enum(['monthly', 'trimester', 'yearly']),
+      type: z.enum(['Monthly', 'Trimester', 'ITR', 'Estimated Return']),
+      selectAllClients: z.boolean().default(false),
+      selectedClientIds: z.array(z.string()).optional(),
     });
   }
 
@@ -321,7 +444,9 @@ export function AddNewTask({
     description: string;
     status: string;
     dueDate: string;
-    type?: 'monthly' | 'trimester' | 'yearly';
+    type?: 'Monthly' | 'Trimester' | 'ITR' | 'Estimated Return';
+    selectAllClients?: boolean;
+    selectedClientIds?: string[];
     clientId?: string;
     assignedTo?: string[];
     subTasks?: { title: string }[];
@@ -335,14 +460,18 @@ export function AddNewTask({
           description: defaultValues.description,
           status: defaultValues.status,
           dueDate: defaultValues.dueDate,
-          type: defaultValues.type ?? 'monthly',
+          type: (defaultValues.type as 'Monthly' | 'Trimester' | 'ITR' | 'Estimated Return') ?? 'Monthly',
+          selectAllClients: false,
+          selectedClientIds: [],
         }
         : {
           taskTitle: "",
           description: "",
           status: "",
           dueDate: "",
-          type: 'monthly',
+          type: 'Monthly',
+          selectAllClients: false,
+          selectedClientIds: [],
         };
     }
 
@@ -406,7 +535,9 @@ export function AddNewTask({
         description: defaultValues.description,
         status: defaultValues.status,
         dueDate: defaultValues.dueDate,
-        type: defaultValues.type ?? "monthly",
+        type: (defaultValues.type as 'Monthly' | 'Trimester' | 'ITR' | 'Estimated Return') ?? "Monthly",
+        selectAllClients: false,
+        selectedClientIds: [],
       };
       form.reset(maskebarValues);
     }
@@ -415,6 +546,16 @@ export function AddNewTask({
   const onSubmit = (data: FormValues) => {
 
     if (mode === "maskebari") {
+      // Validate client selection for maskebari mode
+      if (!data.selectAllClients && (!data.selectedClientIds || data.selectedClientIds.length === 0)) {
+        // Set form error for client selection
+        form.setError("selectedClientIds", { 
+          type: "manual", 
+          message: "Please select at least one client or check 'Select All Clients'" 
+        });
+        return;
+      }
+
       const maskebarData: TaskSubmitData = {
         taskTitle: data.taskTitle,
         status: data.status,
@@ -423,6 +564,8 @@ export function AddNewTask({
         assignedTo: [],
         subTasks: [],
         type: data.type,
+        selectAllClients: data.selectAllClients,
+        selectedClientIds: data.selectAllClients ? undefined : data.selectedClientIds,
       };
       createMaskebari(maskebarData, {
         onSuccess: () => {
@@ -501,6 +644,23 @@ export function AddNewTask({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-2">
         <div className="max-h-[60vh] overflow-y-auto space-y-4 hide-scrollbar">
+          {/* Maskebari Mode Header */}
+          {mode === "maskebari" && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <div className="text-blue-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900">Bulk Task Creation</h3>
+                  <p className="text-sm text-blue-700">Create tasks for multiple clients at once</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <FormField
             control={form.control as any}
             name="taskTitle"
@@ -583,33 +743,113 @@ export function AddNewTask({
 
           {/* Period Field - Only show for maskebari mode */}
           {mode === "maskebari" && (
-            <FormField
-              control={form.control as any}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-900">
-                    Period <span className="text-sm text-red-600">*</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <SelectTrigger className="w-full text-sm h-9">
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="trimester">Trimester</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage className="text-xs min-h-0" />
-                </FormItem>
-              )}
-            />
+            <>
+              <FormField
+                control={form.control as any}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium text-gray-900">
+                      Period <span className="text-sm text-red-600">*</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger className="w-full text-sm h-9">
+                          <SelectValue placeholder="Select period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monthly">Monthly</SelectItem>
+                          <SelectItem value="Trimester">Trimester</SelectItem>
+                          <SelectItem value="ITR">ITR</SelectItem>
+                          <SelectItem value="Estimated Return">Estimated Return</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage className="text-xs min-h-0" />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Client Selection for Maskebari */}
+              <div className="space-y-4 p-4 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                <div className="text-lg font-semibold text-gray-900">
+                  📋 Bulk Task Creation - Client Selection
+                </div>
+                
+                <FormField
+                  control={form.control as any}
+                  name="selectAllClients"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value || false}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-sm font-medium text-gray-900">
+                          Select All Eligible Clients
+                        </FormLabel>
+                        <p className="text-xs text-gray-500">
+                          Automatically create tasks for all clients that match the selected period type
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Individual Client Selection - Only show when "Select All" is unchecked */}
+                {!form.watch("selectAllClients") && (
+                  <FormField
+                    control={form.control as any}
+                    name="selectedClientIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-900">
+                          Choose Specific Clients <span className="text-sm text-red-600">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <ClientMultiSelect
+                            value={field.value || []}
+                            onValueChange={field.onChange}
+                            clients={clients?.data?.clients || []}
+                            taskType={form.watch("type")}
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs min-h-0" />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Show summary when "Select All" is checked */}
+                {form.watch("selectAllClients") && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="text-blue-600">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">
+                          All eligible clients will be selected automatically
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          {form.watch("type") === "Monthly" || form.watch("type") === "Trimester" 
+                            ? `Only clients with "${form.watch("type")}" filling period will be included`
+                            : "All active clients will be included (any filling period)"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {/* Only show these fields if NOT in maskebari mode */}

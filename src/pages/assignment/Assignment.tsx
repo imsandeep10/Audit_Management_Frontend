@@ -45,7 +45,7 @@ const Assignment: React.FC = () => {
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const taskRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  
+
   // Dialog states for task details and notes
   const [selectedTaskForDialog, setSelectedTaskForDialog] = useState<Task | null>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
@@ -71,14 +71,14 @@ const Assignment: React.FC = () => {
       // Handle task highlighting
       if (highlightTaskParam) {
         setHighlightedTaskId(highlightTaskParam);
-        
+
         // Scroll to the task after a short delay to ensure rendering
         const timer = setTimeout(() => {
           const taskElement = taskRefs.current[highlightTaskParam];
           if (taskElement) {
-            taskElement.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center' 
+            taskElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center'
             });
           }
         }, 100);
@@ -207,11 +207,10 @@ const Assignment: React.FC = () => {
       <div
         key={task._id}
         ref={setTaskRef(task._id)}
-        className={`transition-all duration-500 ${
-          highlightedTaskId === task._id 
-            ? 'ring-4 ring-blue-500 ring-opacity-75 shadow-lg scale-105' 
+        className={`transition-all duration-500 ${highlightedTaskId === task._id
+            ? 'ring-4 ring-blue-500 ring-opacity-75 shadow-lg scale-105'
             : ''
-        }`}
+          }`}
       >
         <TaskCard
           {...task}
@@ -408,16 +407,16 @@ const Assignment: React.FC = () => {
               <DialogContent className="max-w-full">
                 <DialogHeader>
                   <DialogTitle className="text-2xl font-semibold">
-                   Add Bulk Tasks
+                    Add Bulk Tasks
                   </DialogTitle>
                   <DialogDescription className="text-sm">
                     Create a new Bulk Task with simplified fields
                   </DialogDescription>
                 </DialogHeader>
-             <AddNewTask
-  onClose={handleCloseMaskebarDialog}
-  mode="maskebari"
-/>
+                <AddNewTask
+                  onClose={handleCloseMaskebarDialog}
+                  mode="maskebari"
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -506,11 +505,10 @@ const Assignment: React.FC = () => {
                   {selectedTaskForDialog.subTasks.map((subTask) => (
                     <li key={subTask._id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                       <span>{subTask.taskTitle}</span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        subTask.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        subTask.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded text-xs ${subTask.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          subTask.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>
                         {subTask.status}
                       </span>
                     </li>

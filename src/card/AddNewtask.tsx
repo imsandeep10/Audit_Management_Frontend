@@ -21,6 +21,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   Command,
   CommandEmpty,
@@ -145,6 +146,13 @@ const createFormSchema = (mode: string) => {
     return z.object({
       ...baseFields,
       type: z.enum(['Monthly', 'Trimester','ITR','Estimated Return']),
+      selectAllClients: z.boolean().optional(),
+      selectedClientIds: z.array(z.string()).optional(),
+    }).refine((data) => {
+      return data.selectAllClients || (data.selectedClientIds && data.selectedClientIds.length > 0);
+    }, {
+      message: "Either select all clients or choose specific clients",
+      path: ["selectedClientIds"],
     });
   }
 
@@ -216,6 +224,8 @@ export function AddNewTask({
     period?: 'Monthly' | 'Trimester'| "ITR"|'Estimated Return';
     assignedTo?: string[];
     subTasks?: { title: string }[];
+    selectAllClients?: boolean;
+    selectedClientIds?: string[];
   };
 
   const getDefaultValues = (): FormValues => {
@@ -227,6 +237,8 @@ export function AddNewTask({
             status: defaultValues.status,
             dueDate: defaultValues.dueDate,
             type: defaultValues.type ?? 'Monthly',
+            selectAllClients: false,
+            selectedClientIds: [],
           }
         : {
             taskTitle: "",
@@ -234,6 +246,8 @@ export function AddNewTask({
             status: "",
             dueDate: "",
             type: 'Monthly',
+            selectAllClients: false,
+            selectedClientIds: [],
           };
     }
 
@@ -355,6 +369,8 @@ const filteredClients = useMemo(() => {
         assignedTo: [],
         subTasks: [],
         type: data.type,
+        selectAllClients: data.selectAllClients,
+        selectedClientIds: data.selectedClientIds,
       };
       createMaskebari(maskebarData, {
         onSuccess: () => {
@@ -362,9 +378,6 @@ const filteredClients = useMemo(() => {
           if (onClose) {
             onClose();
           }
-        },
-        onError: (error) => {
-          console.error("Failed to create maskebari:", error);
         },
       });
       return;
@@ -395,9 +408,6 @@ const filteredClients = useMemo(() => {
             onClose();
           }
         },
-        onError: (error) => {
-          console.error("Failed to create single maskebari:", error);
-        },
       });
       return;
     }
@@ -426,9 +436,6 @@ const filteredClients = useMemo(() => {
               onClose();
             }
           },
-          onError: (error: unknown) => {
-            console.error("Failed to update task:", error);
-          },
         }
       );
     } else {
@@ -438,9 +445,6 @@ const filteredClients = useMemo(() => {
           if (onClose) {
             onClose();
           }
-        },
-        onError: (error) => {
-          console.error("Failed to create task:", error);
         },
       });
     }
@@ -628,37 +632,105 @@ const filteredClients = useMemo(() => {
             </div>
           )}
 
-          {/* Client Names Display for Maskebari Mode */}
-          {mode === "maskebari" && periodType !== "ITR" && periodType !== "Estimated Return" && (
+          {/* Client Selection for Maskebari Mode */}
+          {mode === "maskebari" && (
             <div>
-              <FormLabel className="text-sm font-medium text-gray-900 block mb-2">
-                Available Clients
+              <FormLabel className="text-sm font-medium text-gray-900 block mb-3">
+                Client Selection <span className="text-sm text-red-600">*</span>
               </FormLabel>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                {filteredClients.length > 0 ? (
-                  <div className="space-y-1">
-                    {filteredClients.map((client: any, index: number) => (
-                      <p key={client._id} className="text-sm text-gray-700">
-                        {index + 1}. {client.user?.fullName || 'N/A'}
-                        {client.companyName && (
-                          <span className="text-gray-500 ml-2">({client.companyName})</span>
-                        )}
-                        {client.capital && (
-                          <span className="text-blue-500 ml-2">Capital: {client.capital}</span>
-                        )}
-                      </p>
-                    ))}
-                  </div>
-                ) : periodType ? (
-                  <p className="text-sm text-gray-500">
-                    No clients found for {periodType} period type
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    Select a period type to view available clients
-                  </p>
+              
+              {/* Select All Checkbox */}
+              <FormField
+                control={form.control as any}
+                name="selectAllClients"
+                render={({ field }) => (
+                  <FormItem className="mb-4">
+                    <div className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (checked) {
+                              // Clear individual selections when "select all" is checked
+                              form.setValue("selectedClientIds", []);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormLabel className="text-sm font-medium text-blue-600 cursor-pointer">
+                        Select All Clients
+                      </FormLabel>
+                    </div>
+                  </FormItem>
                 )}
-              </div>
+              />
+
+              {/* Individual Client Selection */}
+              {!form.watch("selectAllClients") && (
+                <FormField
+                  control={form.control as any}
+                  name="selectedClientIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-gray-700 block mb-2">
+                        Or select specific clients:
+                      </FormLabel>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto">
+                        {filteredClients.length > 0 ? (
+                          <div className="space-y-2">
+                            {filteredClients.map((client: any) => (
+                              <div key={client._id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={field.value?.includes(client._id) || false}
+                                  onCheckedChange={(checked) => {
+                                    const currentValue = field.value || [];
+                                    if (checked) {
+                                      field.onChange([...currentValue, client._id]);
+                                    } else {
+                                      field.onChange(currentValue.filter((id: string) => id !== client._id));
+                                    }
+                                  }}
+                                />
+                                <label className="text-sm text-gray-700 cursor-pointer">
+                                  {client.user?.fullName || 'N/A'}
+                                  {client.companyName && (
+                                    <span className="text-gray-500 ml-2">({client.companyName})</span>
+                                  )}
+                                  {periodType && (
+                                    <span className="text-blue-500 ml-2">- {periodType}</span>
+                                  )}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        ) : periodType ? (
+                          <p className="text-sm text-gray-500">
+                            No clients found for {periodType} period type
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-500">
+                            Select a period type to view available clients
+                          </p>
+                        )}
+                      </div>
+                      <FormMessage className="text-xs min-h-0" />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Show selection summary */}
+              {(form.watch("selectAllClients") || (form.watch("selectedClientIds")?.length ?? 0) > 0) && (
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    {form.watch("selectAllClients") 
+                      ? `All clients will be assigned (${filteredClients.length} clients)`
+                      : `${form.watch("selectedClientIds")?.length || 0} client(s) selected`
+                    }
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

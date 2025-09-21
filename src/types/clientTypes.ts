@@ -121,6 +121,7 @@ export interface Client {
   clientNature?: string;
   clientType?: string;
   status?: "active" | "inactive";
+  fillingperiod?: string;
   updatedAt: string;
   user: User | null;
   __v: number;
