@@ -11,5 +11,8 @@ export interface ClientProgress {
 export interface EmployeeProgress {
   employeeId: string;
   employeeName: string;
-  clients: ClientProgress[];
+  totalTasks: number;
+  completedTasks: number;
+  remainingTasks: number;
+  overallProgress: number;
 }

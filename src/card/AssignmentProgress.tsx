@@ -10,29 +10,12 @@ const AssignmentProgress = () => {
     queryFn: DashboardService.getEmployeeProgress
   });
 
-  // Function to get top 5 employees with highest average progress
+  // Function to get top 5 employees (already sorted by backend)
   const getTopEmployees = (data: EmployeeProgress[] | undefined) => {
     if (!data) return [];
     
-    return data
-      .map(employee => {
-        // Safely handle clients array - provide fallback for undefined/null
-        const clients = employee.clients || [];
-        
-        // Calculate average progress across all clients for this employee
-        const avgProgress = clients.length > 0
-          ? clients.reduce((sum, client) => sum + client.progressPercentage, 0)
-          : 0;
-        
-        return {
-          ...employee,
-          clients, // Use the safe clients array
-          avgProgress
-        };
-      })
-      .filter(employee => employee.clients && employee.clients.length > 0) // Only show employees with clients
-      .sort((a, b) => b.avgProgress - a.avgProgress) 
-      .slice(0, 5); 
+    // Backend already returns top 5 employees sorted by progress
+    return data.slice(0, 5);
   };
 
   const topEmployees = getTopEmployees(progressData);
@@ -77,49 +60,29 @@ const AssignmentProgress = () => {
             <p className="text-gray-500">No assignment data available</p>
           </div>
         ) : (
-          topEmployees.map((employee) => {
-            // Safely get the first client or show a fallback
-            const firstClient = employee.clients && employee.clients.length > 0 ? employee.clients[0] : null;
-            
-            if (!firstClient) {
-              return (
-                <div className="flex flex-col gap-3 pt-3" key={employee.employeeId}>
-                  <div className="flex flex-col">
-                    <div className="flex flex-row justify-between text-lg">
-                      <span className="font-semibold">{employee.employeeName}</span>
-                      <span>0%</span>
-                    </div>
-                    <div className="text-[#484747]">
-                      <p className="text-sm">No tasks assigned</p>
-                    </div>
-                    <div className="pt-2">
-                      <Progress value={0} />
-                    </div>
-                  </div>
+          <div className="flex flex-col gap-4 pt-3">
+            {topEmployees.map((employee) => (
+              <div key={employee.employeeId} className="flex flex-col">
+                <div className="flex flex-row justify-between text-lg mb-1">
+                  <span className="font-semibold">{employee.employeeName}</span>
+                  <span>{employee.overallProgress}%</span>
                 </div>
-              );
-            }
-            
-            return (
-              <div className="flex flex-col gap-3 pt-3" key={`${employee.employeeId}-${firstClient.clientId}`}>
-                <div className="flex flex-col">
-                  <div className="flex flex-row justify-between text-lg">
-                    <span className="font-semibold">{employee.employeeName}</span>
-                    <span>{firstClient.progressPercentage}%</span>
-                  </div>
-                  <div className="text-[#484747]">
-                    <p className="text-lg">Client: {firstClient.clientName}</p>
-                    <p className="text-sm">
-                      Progress: {firstClient.completedTasks}/{firstClient.totalTasks} tasks completed
+                <div className="text-[#484747] mb-2">
+                  <p className="text-sm">
+                    Progress: {employee.completedTasks}/{employee.totalTasks} tasks completed
+                  </p>
+                  {employee.remainingTasks > 0 && (
+                    <p className="text-xs text-gray-500">
+                      {employee.remainingTasks} tasks remaining
                     </p>
-                  </div>
-                  <div className="pt-2">
-                    <Progress value={firstClient.progressPercentage} />
-                  </div>
+                  )}
+                </div>
+                <div className="pt-1">
+                  <Progress value={employee.overallProgress} className="h-2" />
                 </div>
               </div>
-            );
-          })
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
