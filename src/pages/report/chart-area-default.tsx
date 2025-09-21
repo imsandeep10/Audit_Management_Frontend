@@ -59,6 +59,40 @@ export function ChartAreaUsers() {
     return colors[index % colors.length];
   };
 
+  // Dynamic Y-axis configuration based on data range
+  const getYAxisConfig = () => {
+    const maxValue = Math.max(...chartData.map(item => item.count), 0);
+    
+    if (maxValue === 0) {
+      return { domain: [0, 10], tickCount: 6 };
+    } else if (maxValue <= 5) {
+      return { domain: [0, maxValue + 1], tickCount: maxValue + 2 };
+    } else if (maxValue <= 10) {
+      return { domain: [0, maxValue + 2], tickCount: Math.min(maxValue + 3, 8) };
+    } else if (maxValue <= 20) {
+      return { domain: [0, Math.ceil(maxValue / 2) * 2], tickCount: 6 };
+    } else if (maxValue <= 50) {
+      return { domain: [0, Math.ceil(maxValue / 5) * 5], tickCount: 6 };
+    } else if (maxValue <= 100) {
+      return { domain: [0, Math.ceil(maxValue / 10) * 10], tickCount: 6 };
+    } else if (maxValue <= 500) {
+      return { domain: [0, Math.ceil(maxValue / 25) * 25], tickCount: 6 };
+    } else if (maxValue <= 1000) {
+      return { domain: [0, Math.ceil(maxValue / 50) * 50], tickCount: 6 };
+    } else if (maxValue <= 5000) {
+      return { domain: [0, Math.ceil(maxValue / 250) * 250], tickCount: 6 };
+    } else if (maxValue <= 10000) {
+      return { domain: [0, Math.ceil(maxValue / 500) * 500], tickCount: 6 };
+    } else {
+      return { domain: [0, Math.ceil(maxValue / 1000) * 1000], tickCount: 6 };
+    }
+  };
+
+  // Format numbers for display (add commas for thousands)
+  const formatNumber = (value: number) => {
+    return value.toLocaleString();
+  };
+
   const fetchClientStats = async (filterType: FilterType) => {
     try {
       setIsLoading(true);
@@ -149,7 +183,14 @@ export function ChartAreaUsers() {
                   textAnchor="end"
                   height={80}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  domain={getYAxisConfig().domain}
+                  tickCount={getYAxisConfig().tickCount}
+                  tickFormatter={formatNumber}
+                  allowDecimals={false}
+                  type="number"
+                />
                 <ChartTooltip
                   content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
@@ -159,7 +200,7 @@ export function ChartAreaUsers() {
                         <div className="bg-white p-3 border rounded-lg shadow-lg">
                           <p className="font-medium">{label}</p>
                           <p className="text-blue-600">
-                            Count: <span className="font-bold">{data.value}</span>
+                            Count: <span className="font-bold">{formatNumber(data.value as number)}</span>
                           </p>
                           <p className="text-gray-600 text-sm">
                             {percentage}% of total clients
@@ -187,7 +228,7 @@ export function ChartAreaUsers() {
         <div className="flex w-full items-start gap-2 text-sm">
           <div className="grid gap-2">
             <div className="flex items-center gap-2 font-medium leading-none">
-              Total clients analyzed: {totalClients}
+              Total clients analyzed: {formatNumber(totalClients)}
             </div>
             <div className="flex items-center gap-2 leading-none text-muted-foreground">
               Showing distribution by {getCurrentFilter()?.label.toLowerCase()}

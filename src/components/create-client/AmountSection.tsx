@@ -101,24 +101,6 @@ const MaskebariRecords: React.FC = () => {
     }).format(amount).replace('NPR', 'NRs');
   };
 
-  // Calculate total amount excluding credit balance
-  const calculateTotalAmount = (record: MaskebariRecord): number => {
-    const vatableSales = record.vatableSales || 0;
-    const vatFreeSales = record.vatFreeSales || 0;
-    const vatablePurchase = record.vatablePurchase || 0;
-    const customPurchase = record.customPurchase || 0;
-    const vatFreePurchase = record.vatFreePurchase || 0;
-    
-    return vatableSales + vatFreeSales + vatablePurchase + customPurchase + vatFreePurchase;
-  };
-
-  // Calculate combined total for latest + all historical records (excluding credit balance)
-  const calculateCombinedTotalAmount = (record: MaskebariRecord): number => {
-    const latestTotal = calculateTotalAmount(record);
-    const historyTotal = (record.lastMaskebari || []).reduce((sum, hist) => sum + calculateTotalAmount(hist), 0);
-    return latestTotal + historyTotal;
-  };
-
   // Calculate sum of specific fields from history records
   const calculateHistorySum = (record: MaskebariRecord, field: keyof MaskebariRecord): number => {
     return (record.lastMaskebari || []).reduce((sum, hist) => {
@@ -237,7 +219,6 @@ const MaskebariRecords: React.FC = () => {
         'Total Custom Purchase (NRs)': calculateTotalSum(record, 'customPurchase'),
         'Total VAT Free Purchase (NRs)': calculateTotalSum(record, 'vatFreePurchase'),
         'Credit Balance (NRs)': record.creditRemainingBalance || 0,
-        'Total Amount (NRs)': calculateTotalAmount(record),
       };
 
       const historyRecords = (record.lastMaskebari || []).map((histRecord, histIndex) => ({
@@ -246,12 +227,12 @@ const MaskebariRecords: React.FC = () => {
         'Date': (histRecord.maskebariDate.split('T')[0]),
         'Company Name': getCompanyName(histRecord),
         'Client ID': getClientId(histRecord),
+        'Total Vatable Sales (NRs)': calculateTotalSum(histRecord, 'vatableSales'),
         'Total VAT Free Sales (NRs)': calculateTotalSum(histRecord, 'vatFreeSales'),
         'Total Vatable Purchase (NRs)': calculateTotalSum(histRecord, 'vatablePurchase'),
         'Total Custom Purchase (NRs)': calculateTotalSum(histRecord, 'customPurchase'),
         'Total VAT Free Purchase (NRs)': calculateTotalSum(histRecord, 'vatFreePurchase'),
         'Credit Balance (NRs)': histRecord.creditRemainingBalance || 0,
-        'Total Amount (NRs)': calculateTotalAmount(histRecord),
       }));
 
       return [mainRecord, ...historyRecords];
@@ -281,8 +262,8 @@ const MaskebariRecords: React.FC = () => {
     if (!filteredRecords.length) return;
 
     const csvData = [
-      ['S.N.', 'Type', 'Date', 'Company Name', 'Client ID', 'Total VAT Free Sales', 
-       'Total Vatable Purchase', 'Total Custom Purchase', 'Total VAT Free Purchase', 'Credit Balance', 'Total Amount']
+      ['S.N.', 'Type', 'Date', 'Company Name', 'Client ID', 'Total Vatable Sales', 'Total VAT Free Sales', 
+       'Total Vatable Purchase', 'Total Custom Purchase', 'Total VAT Free Purchase', 'Credit Balance',]
     ];
 
     filteredRecords.forEach((record, index) => {
@@ -298,7 +279,6 @@ const MaskebariRecords: React.FC = () => {
         calculateTotalSum(record, 'customPurchase').toString(),
         calculateTotalSum(record, 'vatFreePurchase').toString(),
         (record.creditRemainingBalance || 0).toString(),
-        calculateTotalAmount(record).toString(),
       ]);
 
       // Add historical records
@@ -314,7 +294,6 @@ const MaskebariRecords: React.FC = () => {
           calculateTotalSum(histRecord, 'customPurchase').toString(),
           calculateTotalSum(histRecord, 'vatFreePurchase').toString(),
           (histRecord.creditRemainingBalance || 0).toString(),
-          calculateTotalAmount(histRecord).toString(),
         ]);
       });
     });
@@ -514,6 +493,12 @@ const MaskebariRecords: React.FC = () => {
 
                         <TableHead className="font-semibold text-center min-w-[120px]">
                           <div className="text-green-700">
+                            Total Vatable Sales
+                          </div>
+                        </TableHead>
+
+                        <TableHead className="font-semibold text-center min-w-[120px]">
+                          <div className="text-green-700">
                             Total VAT Free Sales
                           </div>
                         </TableHead>
@@ -538,12 +523,7 @@ const MaskebariRecords: React.FC = () => {
                             Credit Balance
                           </div>
                         </TableHead>
-                        <TableHead className="font-semibold text-center min-w-[150px]">
-                          <div className="flex items-center justify-center gap-2">
-                            <Calculator className="h-4 w-4" />
-                            Total Amount
-                          </div>
-                        </TableHead>
+                        
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -594,6 +574,12 @@ const MaskebariRecords: React.FC = () => {
                               </TableCell>
 
                               <TableCell className="text-center">
+                                <span className="font-bold text-blue-700">
+                                  {formatCurrency(calculateTotalSum(record, 'vatableSales'))}
+                                </span>
+                              </TableCell>
+
+                              <TableCell className="text-center">
                                 <span className="font-bold text-green-700">
                                   {formatCurrency(calculateTotalSum(record, 'vatFreeSales'))}
                                 </span>
@@ -618,11 +604,7 @@ const MaskebariRecords: React.FC = () => {
                                   {(record.creditRemainingBalance || 0) < 0 ? '-' : ''}{formatCurrency(Math.abs(record.creditRemainingBalance || 0))}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-center">
-                                <span className="font-bold text-purple-700">
-                                  {formatCurrency(calculateCombinedTotalAmount(record))}
-                                </span>
-                              </TableCell>
+                             
                             </TableRow>
 
                             {/* Historical Records Dropdown Content */}
@@ -693,13 +675,7 @@ const MaskebariRecords: React.FC = () => {
                                                 {formatCurrency(histRecord.creditRemainingBalance || 0)}
                                               </div>
                                             </div>
-                                            <div>
-                                              <span className="font-medium text-gray-600">Total Amount:</span>
-                                              <div className="font-bold text-purple-700">
-                                                {formatCurrency(calculateTotalAmount(histRecord))}
-                                              </div>
                                             </div>
-                                          </div>
                                         </div>
                                       ))}
                                     </div>

@@ -13,6 +13,8 @@ import { sideBarList } from "../../../constant/sidebarList";
 import SideBarFooter from "./SideBarFooter";
 
 import type { menuItem, menuSection } from "../../../lib/types";
+import Logo from "../../../../public/logo.png";
+
 
 const AppsideBar = () => {
   const location = useLocation();
@@ -23,7 +25,7 @@ const AppsideBar = () => {
     <Sidebar collapsible="icon" className="shadow-2xl">
       <div className="px-10 flex flex-col items-center font-semibold h-18 max-w-full card-custom pt-5  ">
         <img
-          src="/CA.png"
+          src={Logo}
           alt="ams-logo"
           className="h-full object-cover w-20"
         />
