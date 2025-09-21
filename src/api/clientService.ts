@@ -57,6 +57,12 @@ export const clientService = {
     return response.data;
   },
 
+  async getClientStatistics(filterType?: string) {
+    const params = filterType ? { filterType } : {};
+    const response = await axiosInstance.get("/client/statistics", { params });
+    return response.data;
+  },
+
   async uploadDocumentAPI(clientId: string, formData: FormData) {
     const response = await axiosInstance.post(
       `/files/documents/${clientId}`,
