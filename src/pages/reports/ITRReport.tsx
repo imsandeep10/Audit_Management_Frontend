@@ -149,8 +149,8 @@ export default function ITRReport() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Task Title</TableHead>
-                      <TableHead>Client Name</TableHead>
                       <TableHead>Company Name</TableHead>
+                      <TableHead>Client Name</TableHead>
                       <TableHead className="text-right">Taxable Amount</TableHead>
                       <TableHead className="text-right">Tax Amount</TableHead>
                       <TableHead className="text-right">Total Turnover</TableHead>
@@ -165,9 +165,9 @@ export default function ITRReport() {
                             <div className="font-semibold">{task.taskTitle}</div>
                           </div>
                         </TableCell>
-                        <TableCell>{task.clientName}</TableCell>
                         <TableCell>{task.companyName}</TableCell>
                         
+                        <TableCell>{task.clientName}</TableCell>
                         <TableCell className="text-right font-mono">
                           रु {formatAmount(task.taxableAmount)}
                         </TableCell>

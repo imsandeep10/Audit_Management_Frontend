@@ -119,8 +119,8 @@ const MaskebariRecords: React.FC = () => {
   
 
   const getCreditBalanceColor = (balance: number): string => {
-    if (balance > 0) return 'text-green-600';
-    if (balance < 0) return 'text-red-600';
+    if (balance > 0) return 'text-green-900';
+    if (balance < 0) return 'text-red-900';
     return 'text-gray-600';
   };
 
