@@ -10,7 +10,7 @@ import {
 
 export const FileUploadField: React.FC<FileUploadFieldProps> = ({
   onFilesChange,
-  files = [],
+  files: initialFiles = [],
   maxFiles = 5,
   acceptedFileTypes = [
     "application/pdf",
@@ -28,8 +28,17 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
   disabled = false,
   label,
   className,
+  showPreview = true,
 }) => {
+  const [files, setFiles] = useState<FileWithPreview[]>(initialFiles);
   const [error, setError] = useState<string | null>(null);
+
+  // Update files when initialFiles prop changes (for edit mode)
+  React.useEffect(() => {
+    if (initialFiles && initialFiles.length > 0) {
+      setFiles(initialFiles);
+    }
+  }, [initialFiles]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[], rejectedFiles: any[]) => {
@@ -52,6 +61,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
       });
 
       const updatedFiles = [...files, ...newFiles].slice(0, maxFiles);
+      setFiles(updatedFiles);
       onFilesChange(updatedFiles);
     },
     [files, onFilesChange, maxFiles]
@@ -70,14 +80,17 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
   const removeFile = useCallback(
     (fileId: string) => {
-      const file = files.find((f) => f.id === fileId);
-      if (file?.preview) {
-        URL.revokeObjectURL(file.preview);
-      }
-      const updatedFiles = files.filter((f) => f.id !== fileId);
-      onFilesChange(updatedFiles);
+      setFiles((current) => {
+        const file = current.find((f) => f.id === fileId);
+        if (file?.preview) {
+          URL.revokeObjectURL(file.preview);
+        }
+        const updatedFiles = current.filter((f) => f.id !== fileId);
+        onFilesChange(updatedFiles);
+        return updatedFiles;
+      });
     },
-    [files, onFilesChange]
+    [onFilesChange]
   );
 
   return (
@@ -114,7 +127,7 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
 
       {files.length > 0 && (
         <div className="space-y-1.5">
-          {files.map((file) => (
+          {files.map((file: any) => (
             <div
               key={file.id}
               className="flex items-center justify-between p-2 bg-gray-50 rounded-md border"
@@ -124,21 +137,52 @@ export const FileUploadField: React.FC<FileUploadFieldProps> = ({
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-gray-900 truncate">
                     {file.name}
+                    {file.isExisting && (
+                      <span className="ml-1 text-xs text-blue-600 font-normal">
+                        (existing)
+                      </span>
+                    )}
                   </p>
                   <p className="text-2xs text-gray-500">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => removeFile(file.id!)}
-                disabled={disabled}
-                className="text-red-500 hover:text-red-700 p-1 h-auto"
-              >
-                <X className="h-3 w-3" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {showPreview && (file.preview || file.isExisting) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (file.isExisting && file.preview) {
+                        // Open existing file in new tab
+                        window.open(file.preview, '_blank');
+                      } else if (file.preview && !file.isExisting) {
+                        // For new files, create a temporary preview
+                        const link = document.createElement('a');
+                        link.href = file.preview;
+                        link.download = file.name;
+                        link.target = '_blank';
+                        link.click();
+                      }
+                    }}
+                    disabled={disabled}
+                    className="text-blue-500 hover:text-blue-700 p-1 h-auto"
+                    title="Preview file"
+                  >
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => removeFile(file.id!)}
+                  disabled={disabled}
+                  className="text-red-500 hover:text-red-700 p-1 h-auto"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>

@@ -10,19 +10,22 @@ export const customerPanSchema = z
 
 // Phone number validation for both mobile and landline (optional)
 const phoneNumberSchema = z
-  .string()
-  .trim()
+  .number()
   .optional()
-  // Allow empty/undefined values
-  .refine((val) => !val || /^[0-9]+$/.test(val), "Invalid phone number format")
   .refine((val) => {
-    if (!val) return true;
+    if (val === undefined) return true;
+    const strVal = val.toString();
+    return /^[0-9]+$/.test(strVal);
+  }, "Invalid phone number format")
+  .refine((val) => {
+    if (val === undefined) return true;
+    const strVal = val.toString();
     // Mobile: starts with 97 or 98 and is 10 digits
-    if (val.startsWith('97') || val.startsWith('98')) {
-      return val.length === 10;
+    if (strVal.startsWith('97') || strVal.startsWith('98')) {
+      return strVal.length === 10;
     }
     // Landline: 6-9 digits (allow leading 0)
-    return val.length >= 6 && val.length <= 9;
+    return strVal.length >= 6 && strVal.length <= 9;
   }, "Invalid phone number format");
 
 // Sales bill schema
@@ -32,9 +35,9 @@ export const salesBillSchema = z.object({
   billDate: z.string().min(1, "Bill date is required"),
   billNo: z.string().min(1, "Bill number is required"),
   customerPan: customerPanSchema,
-  files: z.array(z.instanceof(File)).optional().default([]),
-  documentIds: z.array(z.string()).optional().default([]),
-  amount: z.number().refine(
+  files: z.array(z.instanceof(File)).default([]),
+  documentIds: z.array(z.string()).default([]),
+ amount: z.number().refine(
     (val) => !isNaN(val) && isFinite(val),
     "Amount must be a valid number (positive or negative)"
   ),
@@ -49,9 +52,9 @@ export const purchaseBillSchema = z.object({
   billDate: z.string().min(1, "Bill date is required"),
   customerBillNo: z.string().min(1, "Customer bill number is required"),
   customerPan: customerPanSchema,
-  files: z.array(z.instanceof(File)).optional().default([]),
-  documentIds: z.array(z.string()).optional().default([]),
-  amount: z.number().refine(
+  files: z.array(z.instanceof(File)).default([]),
+  documentIds: z.array(z.string()).default([]),
+ amount: z.number().refine(
     (val) => !isNaN(val) && isFinite(val),
     "Amount must be a valid number (positive or negative)"
   ),

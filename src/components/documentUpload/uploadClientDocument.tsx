@@ -204,6 +204,7 @@ export const UploadClientDocument = () => {
               name="documents1"
               onFilesChange={handleStage1FilesChange("documents1")}
               className="h-full"
+              showPreview={true}
             />
           </div>
 
@@ -216,6 +217,7 @@ export const UploadClientDocument = () => {
               name="documents2"
               onFilesChange={handleStage1FilesChange("documents2")}
               className="h-full"
+              showPreview={true}
             />
           </div>
 
@@ -228,6 +230,7 @@ export const UploadClientDocument = () => {
               name="documents3"
               onFilesChange={handleStage1FilesChange("documents3")}
               className="h-full"
+              showPreview={true}
             />
           </div>
 
@@ -240,6 +243,7 @@ export const UploadClientDocument = () => {
               name="documents4"
               onFilesChange={handleStage1FilesChange("documents4")}
               className="h-full"
+              showPreview={true}
             />
           </div>
         </div>

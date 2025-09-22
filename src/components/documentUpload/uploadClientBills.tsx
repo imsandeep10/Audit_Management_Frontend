@@ -266,7 +266,7 @@ export const UploadClientBills = () => {
     billsForm.setValue(`${billType}.registrationType`, customer.registrationType);
 
     // Set phone number if available (store as string in form)
-    billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber?.toString() || "");
+    billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber);
   };
 
   const handleBillsFilesChange =

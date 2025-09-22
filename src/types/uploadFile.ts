@@ -23,4 +23,5 @@ export interface FileUploadFieldProps {
   disabled?: boolean;
   label?: string;
   className?: string;
+  showPreview?: boolean; // New prop to control preview display
 }
