@@ -147,6 +147,10 @@ export const useClientUpdateMutations = () => {
         toast.success("Client updated successfully!");
         queryClient.invalidateQueries({ queryKey: ["clients"] });
         queryClient.invalidateQueries({ queryKey: ["client"] });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        queryClient.invalidateQueries({ queryKey: ["users"] });
+
+        
       } else {
         toast.error("Failed to update client. Please try again.");
       }
