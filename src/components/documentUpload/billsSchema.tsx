@@ -10,22 +10,20 @@ export const customerPanSchema = z
 
 // Phone number validation for both mobile and landline (optional)
 const phoneNumberSchema = z
-  .number()
+  .string()
   .optional()
   .refine((val) => {
-    if (val === undefined) return true;
-    const strVal = val.toString();
-    return /^[0-9]+$/.test(strVal);
+    if (!val || val === "") return true;
+    return /^[0-9]+$/.test(val);
   }, "Invalid phone number format")
   .refine((val) => {
-    if (val === undefined) return true;
-    const strVal = val.toString();
+    if (!val || val === "") return true;
     // Mobile: starts with 97 or 98 and is 10 digits
-    if (strVal.startsWith('97') || strVal.startsWith('98')) {
-      return strVal.length === 10;
+    if (val.startsWith('97') || val.startsWith('98')) {
+      return val.length === 10;
     }
     // Landline: 6-9 digits (allow leading 0)
-    return strVal.length >= 6 && strVal.length <= 9;
+    return val.length >= 6 && val.length <= 9;
   }, "Invalid phone number format");
 
 // Sales bill schema

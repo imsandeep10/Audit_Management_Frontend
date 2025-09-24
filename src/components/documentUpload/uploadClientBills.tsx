@@ -97,7 +97,7 @@ export const UploadClientBills = () => {
           billNo: billData.billNo || '',
           customerPan: billData.customerPan || '',
           amount: billData.amount || 0,
-          phoneNumber: billData.phoneNumber?.toString() || '',
+          phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
           registrationType: billData.registrationType,
           files: convertDocumentsToFiles(billData.documents || []),
           documentIds: billData.documentIds || [],
@@ -110,7 +110,7 @@ export const UploadClientBills = () => {
           customerBillNo: billData.customerBillNo || '',
           customerPan: billData.customerPan || '',
           amount: billData.amount || 0,
-          phoneNumber: billData.phoneNumber?.toString() || '',
+          phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
           registrationType: billData.registrationType,
           files: convertDocumentsToFiles(billData.documents || []),
           documentIds: billData.documentIds || [],
@@ -266,7 +266,7 @@ export const UploadClientBills = () => {
     billsForm.setValue(`${billType}.registrationType`, customer.registrationType);
 
     // Set phone number if available (store as string in form)
-    billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber);
+    billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber ? customer.phoneNumber.toString() : '');
   };
 
   const handleBillsFilesChange =
@@ -306,7 +306,7 @@ export const UploadClientBills = () => {
         billNo: salesData.billNo,
         customerPan: salesData.customerPan,
         amount: salesData.amount,
-        phoneNumber: salesData.phoneNumber ? Number(salesData.phoneNumber) : undefined,
+        phoneNumber: (salesData.phoneNumber && salesData.phoneNumber.trim() !== "") ? Number(salesData.phoneNumber) : undefined,
         registrationType: salesData.registrationType,
       };
 
@@ -349,7 +349,7 @@ export const UploadClientBills = () => {
         customerBillNo: purchaseData.customerBillNo,
         customerPan: purchaseData.customerPan,
         amount: purchaseData.amount,
-        phoneNumber: purchaseData.phoneNumber ? Number(purchaseData.phoneNumber) : undefined,
+        phoneNumber: (purchaseData.phoneNumber && purchaseData.phoneNumber.trim() !== "") ? Number(purchaseData.phoneNumber) : undefined,
         registrationType: purchaseData.registrationType,
       };
 
