@@ -238,7 +238,7 @@ export const RelatedTasks: React.FC<RelatedTasksProps> = ({
           </div>
           {(clientName || companyName) && (
             <p className="text-sm text-muted-foreground">
-              Tasks for {companyName && `${companyName} - `}{clientName}
+              Tasks for {companyName && `${companyName} - `}{companyName}
             </p>
           )}
         </CardHeader>
