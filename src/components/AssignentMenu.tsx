@@ -76,10 +76,8 @@ import NoteConversationDialog from "./notes/NoteConversationDialog";
 import { useAuth } from "../contexts/AuthContext";
 import AmountDialog from "../employee/dashboard/AmountDialog";
 import ITREstimatedDialog, {
-  type ITREstimatedData,
   type TaskWithITRData,
 } from "../employee/dashboard/ITREstimatedDialog";
-import { useUpdateEstimatedReturnByTaskId, useUpdateITRByTaskId } from "../api/useReport";
 
 // Client Select Component
 function ClientSelect({
@@ -1046,8 +1044,6 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
   const { data, isLoading, error } = useGetTaskById(selectedTask || undefined);
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const updateITRMutation = useUpdateITRByTaskId();
-  const updateEstimatedMutation = useUpdateEstimatedReturnByTaskId();
 
   const { mutate: deleteTask } = useMutation({
     mutationFn: (taskId: string) => taskService.deleteTaskById(taskId),
@@ -1522,31 +1518,6 @@ const AssignmentMenu: React.FC<Props> = ({ selectedTask, children }) => {
           onClose={() => {
             setItrEstimatedDialogOpen(false);
             setSelectedTaskForITREstimated(null);
-          }}
-          onSave={async (data: ITREstimatedData) => {
-            if (!selectedTaskForITREstimated) return;
-            const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
-            if (taskType === "itr") {
-              await updateITRMutation.mutateAsync({
-                taskId: selectedTaskForITREstimated._id,
-                itrData: {
-                  taxableAmount: data.taxableAmount,
-                  taxAmount: data.taxAmount,
-                  taskAmount: data.taskAmount,
-                },
-              });
-            } else if (taskType === "estimated return") {
-              await updateEstimatedMutation.mutateAsync({
-                taskId: selectedTaskForITREstimated._id,
-                estimatedReturnData: {
-                  estimatedRevenue: data.estimatedRevenue,
-                  netProfit: data.netProfit,
-                },
-              });
-            }
-            await queryClient.invalidateQueries({ queryKey: ["tasks"] });
-            await queryClient.invalidateQueries({ queryKey: ["task", selectedTask] });
-            toast.success("Amounts saved");
           }}
           task={selectedTaskForITREstimated}
         />

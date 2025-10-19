@@ -131,3 +131,36 @@ export const useGetTaskById = (id?: string) => {
     refetchOnWindowFocus: false,
   });
 };
+
+export const useUpdateITREstimatedData = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ 
+      taskId, 
+      data 
+    }: { 
+      taskId: string; 
+      data: {
+        fiscalYear?: string;
+        taxableAmount?: number;
+        taxAmount?: number;
+        taskAmount?: number;
+        estimatedRevenue?: number;
+        netProfit?: number;
+      } 
+    }) => taskService.updateTaskWithITREstimatedData(taskId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      toast.success("Task completed successfully");
+    },
+    onError: (error: any) => {
+      let errorMessage = "Failed to update task";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      toast.error(errorMessage);
+    },
+  });
+};

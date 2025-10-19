@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
     Dialog,
     DialogContent,
@@ -11,6 +13,8 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { getCurrentNepalieFiscalYear, generateFiscalYearOptions } from "../../utils/fiscalYear";
+import { itrSchema, estimatedReturnSchema } from "../../schemas/itrEstimatedSchema";
+import { useUpdateITREstimatedData } from "../../api/useTask";
 
 export interface ITREstimatedData {
     // ITR fields
@@ -38,131 +42,87 @@ export interface TaskWithITRData {
 interface ITREstimatedDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (data: ITREstimatedData) => Promise<void>;
     task: TaskWithITRData;
+    onSuccess?: () => void; // Optional callback after successful save
 }
 
 const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
     isOpen,
     onClose,
-    onSave,
     task,
+    onSuccess,
 }) => {
-    const [formData, setFormData] = useState<ITREstimatedData>({
-        taxableAmount: 0,
-        taxAmount: 0,
-        taskAmount: 0,
-        estimatedRevenue: 0,
-        netProfit: 0,
-        fiscalYear: getCurrentNepalieFiscalYear(),
-    });
-
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
-
     const isITR = task?.taskType?.toLowerCase() === "itr";
     const isEstimatedReturn = task?.taskType?.toLowerCase() === "estimated return";
+
+    // Use the appropriate schema based on task type
+    const schema = isITR ? itrSchema : estimatedReturnSchema;
+    
+    const form = useForm({
+        resolver: zodResolver(schema),
+        defaultValues: {
+            fiscalYear: getCurrentNepalieFiscalYear(),
+            ...(isITR ? {
+                taxableAmount: 0,
+                taxAmount: 0,
+                taskAmount: 0,
+            } : {
+                estimatedRevenue: 0,
+                netProfit: 0,
+            }),
+        },
+    });
+
+    const {
+        register,
+        handleSubmit: hookFormHandleSubmit,
+        formState: { errors, isSubmitting },
+        setValue,
+        watch,
+        reset,
+    } = form;
+
+    const updateMutation = useUpdateITREstimatedData();
 
     // Initialize form from existing task data if present
     useEffect(() => {
         if (!task) return;
         const anyTask: any = task as any;
-        const initial: ITREstimatedData = {
-            taxableAmount: Number(anyTask?.itrData?.taxableAmount ?? anyTask?.taxableAmount ?? 0),
-            taxAmount: Number(anyTask?.itrData?.taxAmount ?? anyTask?.taxAmount ?? 0),
-            taskAmount: Number(anyTask?.itrData?.taskAmount ?? anyTask?.taskAmount ?? 0),
-            estimatedRevenue: Number(anyTask?.estimatedReturnData?.estimatedRevenue ?? anyTask?.estimatedRevenue ?? 0),
-            netProfit: Number(anyTask?.estimatedReturnData?.netProfit ?? anyTask?.netProfit ?? 0),
-        };
-        setFormData(initial);
-    }, [task]);
-
-    const validateForm = (): boolean => {
-        const newErrors: Record<string, string> = {};
-
-        // Validate fiscal year for both ITR and Estimated Return
-        if (!formData.fiscalYear) {
-            newErrors.fiscalYear = "Fiscal Year is required";
-        }
-
+        
         if (isITR) {
-            if (formData.taxableAmount === undefined || formData.taxableAmount === null) {
-                newErrors.taxableAmount = "Taxable Amount is required";
-            }
-            if (!formData.taxAmount || formData.taxAmount <= 0) {
-                newErrors.taxAmount = "Tax Amount is required and must be greater than 0";
-            }
-            if (!formData.taskAmount || formData.taskAmount <= 0) {
-                newErrors.taskAmount = "Task Amount is required and must be greater than 0";
-            }
+            reset({
+                fiscalYear: getCurrentNepalieFiscalYear(),
+                taxableAmount: Number(anyTask?.itrData?.taxableAmount ?? anyTask?.taxableAmount ?? 0),
+                taxAmount: Number(anyTask?.itrData?.taxAmount ?? anyTask?.taxAmount ?? 0),
+                taskAmount: Number(anyTask?.itrData?.taskAmount ?? anyTask?.taskAmount ?? 0),
+            });
+        } else if (isEstimatedReturn) {
+            reset({
+                fiscalYear: getCurrentNepalieFiscalYear(),
+                estimatedRevenue: Number(anyTask?.estimatedReturnData?.estimatedRevenue ?? anyTask?.estimatedRevenue ?? 0),
+                netProfit: Number(anyTask?.estimatedReturnData?.netProfit ?? anyTask?.netProfit ?? 0),
+            });
         }
+    }, [task, isITR, isEstimatedReturn, reset]);
 
-        if (isEstimatedReturn) {
-            if (!formData.estimatedRevenue || formData.estimatedRevenue <= 0) {
-                newErrors.estimatedRevenue = "Estimated Revenue is required and must be greater than 0";
-            }
-            if (!formData.netProfit || formData.netProfit <= 0) {
-                newErrors.netProfit = "Net Profit is required and must be greater than 0";
-            }
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleInputChange = (field: keyof ITREstimatedData, value: string) => {
-        // Handle fiscal year as string, others as numbers
-        if (field === 'fiscalYear') {
-            setFormData(prev => ({
-                ...prev,
-                [field]: value
-            }));
-        } else {
-            // Allow empty string, negative numbers, and decimal values
-            const numValue = value === "" ? 0 : parseFloat(value);
-            setFormData(prev => ({
-                ...prev,
-                [field]: isNaN(numValue) ? 0 : numValue
-            }));
-        }
-
-        // Clear error when user starts typing
-        if (errors[field]) {
-            setErrors(prev => ({
-                ...prev,
-                [field]: ""
-            }));
-        }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
-        setIsSubmitting(true);
+    const onSubmit = async (data: any) => {
         try {
-            await onSave(formData);
-            onClose();
+            await updateMutation.mutateAsync({
+                taskId: task._id,
+                data: data,
+            });
+            // Call onSuccess callback if provided
+            if (onSuccess) {
+                onSuccess();
+            }
+            handleClose();
         } catch (error) {
             console.error("Error saving ITR/Estimated data:", error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
     const handleClose = () => {
-        setFormData({
-            taxableAmount: 0,
-            taxAmount: 0,
-            taskAmount: 0,
-            estimatedRevenue: 0,
-            netProfit: 0,
-            fiscalYear: getCurrentNepalieFiscalYear(),
-        });
-        setErrors({});
+        reset();
         onClose();
     };
 
@@ -195,19 +155,19 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={hookFormHandleSubmit(onSubmit)} className="space-y-4">
                     {/* Fiscal Year Selection - Common for both ITR and Estimated Return */}
                     <div className="space-y-2">
                         <Label htmlFor="fiscalYear">Fiscal Year *</Label>
                         <Select
-                            value={formData.fiscalYear}
-                            onValueChange={(value) => handleInputChange('fiscalYear', value)}
+                            value={watch("fiscalYear")}
+                            onValueChange={(value) => setValue("fiscalYear", value)}
                         >
                             <SelectTrigger className={errors.fiscalYear ? 'border-red-500' : ''}>
                                 <SelectValue placeholder="Select Fiscal Year" />
                             </SelectTrigger>
                             <SelectContent>
-                                {generateFiscalYearOptions(5 , 5).map((option) => (
+                                {generateFiscalYearOptions(5, 5).map((option) => (
                                     <SelectItem key={option.value} value={option.value}>
                                         {option.label}
                                     </SelectItem>
@@ -215,7 +175,7 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                             </SelectContent>
                         </Select>
                         {errors.fiscalYear && (
-                            <p className="text-red-500 text-sm mt-1">{errors.fiscalYear}</p>
+                            <p className="text-red-500 text-sm mt-1">{errors.fiscalYear.message}</p>
                         )}
                     </div>
 
@@ -227,13 +187,12 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                                     id="taskAmount"
                                     type="number"
                                     step="0.01"
-                                    value={formData.taskAmount || ''}
-                                    onChange={(e) => handleInputChange('taskAmount', e.target.value)}
-                                    placeholder="Enter task amount"
-                                    className={errors.taskAmount ? 'border-red-500' : ''}
+                                    {...register("taskAmount" as any)}
+                                    placeholder="Enter Total Turnover"
+                                    className={(errors as any).taskAmount ? 'border-red-500' : ''}
                                 />
-                                {errors.taskAmount && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.taskAmount}</p>
+                                {(errors as any).taskAmount && (
+                                    <p className="text-red-500 text-sm mt-1">{(errors as any).taskAmount.message}</p>
                                 )}
                             </div>
 
@@ -243,13 +202,12 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                                     id="taxableAmount"
                                     type="number"
                                     step="0.01"
-                                    value={formData.taxableAmount || ''}
-                                    onChange={(e) => handleInputChange('taxableAmount', e.target.value)}
+                                    {...register("taxableAmount" as any)}
                                     placeholder="Enter taxable amount (can be negative)"
-                                    className={errors.taxableAmount ? 'border-red-500' : ''}
+                                    className={(errors as any).taxableAmount ? 'border-red-500' : ''}
                                 />
-                                {errors.taxableAmount && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.taxableAmount}</p>
+                                {(errors as any).taxableAmount && (
+                                    <p className="text-red-500 text-sm mt-1">{(errors as any).taxableAmount.message}</p>
                                 )}
                             </div>
 
@@ -260,13 +218,12 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={formData.taxAmount || ''}
-                                    onChange={(e) => handleInputChange('taxAmount', e.target.value)}
+                                    {...register("taxAmount" as any)}
                                     placeholder="Enter tax amount"
-                                    className={errors.taxAmount ? 'border-red-500' : ''}
+                                    className={(errors as any).taxAmount ? 'border-red-500' : ''}
                                 />
-                                {errors.taxAmount && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.taxAmount}</p>
+                                {(errors as any).taxAmount && (
+                                    <p className="text-red-500 text-sm mt-1">{(errors as any).taxAmount.message}</p>
                                 )}
                             </div>
                         </>
@@ -281,13 +238,12 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={formData.estimatedRevenue || ''}
-                                    onChange={(e) => handleInputChange('estimatedRevenue', e.target.value)}
+                                    {...register("estimatedRevenue" as any)}
                                     placeholder="Enter estimated revenue"
-                                    className={errors.estimatedRevenue ? 'border-red-500' : ''}
+                                    className={(errors as any).estimatedRevenue ? 'border-red-500' : ''}
                                 />
-                                {errors.estimatedRevenue && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.estimatedRevenue}</p>
+                                {(errors as any).estimatedRevenue && (
+                                    <p className="text-red-500 text-sm mt-1">{(errors as any).estimatedRevenue.message}</p>
                                 )}
                             </div>
 
@@ -298,13 +254,12 @@ const ITREstimatedDialog: React.FC<ITREstimatedDialogProps> = ({
                                     type="number"
                                     step="0.01"
                                     min="0"
-                                    value={formData.netProfit || ''}
-                                    onChange={(e) => handleInputChange('netProfit', e.target.value)}
+                                    {...register("netProfit" as any)}
                                     placeholder="Enter net profit"
-                                    className={errors.netProfit ? 'border-red-500' : ''}
+                                    className={(errors as any).netProfit ? 'border-red-500' : ''}
                                 />
-                                {errors.netProfit && (
-                                    <p className="text-red-500 text-sm mt-1">{errors.netProfit}</p>
+                                {(errors as any).netProfit && (
+                                    <p className="text-red-500 text-sm mt-1">{(errors as any).netProfit.message}</p>
                                 )}
                             </div>
                         </>

@@ -6,7 +6,6 @@ import {
   useUpdateSubTaskStatus,
 } from "../../hooks/useEmployeeTask";
 import { useAuth } from "../../contexts/AuthContext";
-import { useUpdateEstimatedReturnByTaskId, useUpdateITRByTaskId } from "../../api/useReport";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +20,6 @@ import type { TaskWithDetails as LocalTaskWithDetails } from "./AmountDialog";
 import TaskCard from "./TaskCard";
 import CompletedTaskCard from "./CompletedTaskCard";
 import ITREstimatedDialog, { 
-  type ITREstimatedData, 
   type TaskWithITRData 
 } from "./ITREstimatedDialog";
 
@@ -68,8 +66,6 @@ const EmployeeAssignedTasks = () => {
   } = useEmployeeTasks(employeeId || ""); 
   
   const { mutate: updateStatus } = useUpdateSubTaskStatus();
-  const updateITRMutation = useUpdateITRByTaskId();
-  const updateEstimatedMutation = useUpdateEstimatedReturnByTaskId();
   
 
   useEffect(() => {
@@ -227,59 +223,6 @@ const EmployeeAssignedTasks = () => {
         setAmountDialogOpen(false);
       } catch (err) {
         console.error("Failed to save amounts:", err);
-      }
-    }
-  };
-
-  const handleSaveITREstimatedData = async (data: ITREstimatedData) => {
-    if (selectedTaskForITREstimated) {
-      try {
-        const taskType = selectedTaskForITREstimated.taskType?.toLowerCase();
-        
-        if (taskType === "itr") {
-          await updateITRMutation.mutateAsync({
-            taskId: selectedTaskForITREstimated._id,
-            itrData: {
-              taxableAmount: data.taxableAmount,
-              taxAmount: data.taxAmount,
-              taskAmount: data.taskAmount,
-              fiscalYear: data.fiscalYear, // Include fiscal year
-            },
-          });
-        } else if (taskType === "estimated return") {
-          await updateEstimatedMutation.mutateAsync({
-            taskId: selectedTaskForITREstimated._id,
-            estimatedReturnData: {
-              estimatedRevenue: data.estimatedRevenue,
-              netProfit: data.netProfit,
-              fiscalYear: data.fiscalYear, // Include fiscal year
-            },
-          });
-        }
-        
-        // Check if this was triggered by a subtask completion
-        // If pendingSubTaskCompletion exists, complete the subtask instead of the main task
-        if (pendingSubTaskCompletion) {
-          await updateStatus({ 
-            taskId: pendingSubTaskCompletion.taskId, 
-            subTaskId: pendingSubTaskCompletion.subTaskId,
-            status: "completed" 
-          });
-          setPendingSubTaskCompletion(null);
-        } else {
-          // Mark main task as completed
-          await updateStatus({ taskId: selectedTaskForITREstimated._id, status: "completed" });
-        }
-        
-        await refetch();
-              
-        // Close dialog and reset state
-        setSelectedTaskForITREstimated(null);
-        setItrEstimatedDialogOpen(false);
-      } catch (err) {
-        console.error("Failed to save ITR/Estimated data:", err);
-        // Re-throw the error so the dialog can handle it
-        throw err;
       }
     }
   };
@@ -492,9 +435,24 @@ const EmployeeAssignedTasks = () => {
               onClose={() => {
                 setItrEstimatedDialogOpen(false);
                 setSelectedTaskForITREstimated(null);
-                setPendingSubTaskCompletion(null); // Clear pending subtask completion
+                setPendingSubTaskCompletion(null);
+                // Refetch tasks after dialog closes (whether saved or cancelled)
+                refetch();
               }}
-              onSave={handleSaveITREstimatedData}
+              onSuccess={() => {
+                // If there's a pending subtask completion, complete the subtask
+                if (pendingSubTaskCompletion) {
+                  updateStatus({
+                    taskId: pendingSubTaskCompletion.taskId,
+                    subTaskId: pendingSubTaskCompletion.subTaskId,
+                    status: "completed"
+                  });
+                  setPendingSubTaskCompletion(null);
+                } else {
+                  // Otherwise complete the main task
+                  updateStatus({ taskId: selectedTaskForITREstimated._id, status: "completed" });
+                }
+              }}
               task={selectedTaskForITREstimated}
             />
           )}

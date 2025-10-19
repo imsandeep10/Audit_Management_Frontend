@@ -107,6 +107,7 @@ export const taskService = {
   async updateTaskWithITREstimatedData(
     taskId: string, 
     data: {
+      fiscalYear?: string;
       taxableAmount?: number;
       taxAmount?: number;
       taskAmount?: number;
