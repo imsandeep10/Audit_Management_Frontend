@@ -2,7 +2,7 @@ import { Cake, IdCardLanyard, Mail, MapPin, Phone } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 
 import { Card, CardContent, CardHeader } from "../../components/ui/card";
-import {  useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useGetUserById } from "../../api/useUser";
 import { Button } from "../../components/ui/button";
 import {
@@ -25,10 +25,10 @@ const UserDetailPage = () => {
   // Function to format phone number for WhatsApp
   const formatPhoneForWhatsApp = (phoneNumber: string) => {
     if (!phoneNumber) return '';
-    
+
     // Remove all non-digit characters
     let cleaned = phoneNumber.replace(/\D/g, '');
-    
+
     // If it starts with 0, replace with country code (assuming Nepal +977)
     if (cleaned.startsWith('0')) {
       cleaned = '977' + cleaned.substring(1);
@@ -37,7 +37,7 @@ const UserDetailPage = () => {
     else if (!cleaned.startsWith('977') && cleaned.length === 10) {
       cleaned = '977' + cleaned;
     }
-    
+
     return cleaned;
   };
 
@@ -45,7 +45,7 @@ const UserDetailPage = () => {
   const createWhatsAppURL = (phoneNumber: string) => {
     const formattedNumber = formatPhoneForWhatsApp(phoneNumber);
     if (!formattedNumber) return '#';
-    
+
     // Using the official WhatsApp Web/App URL format
     return `https://wa.me/${formattedNumber}`;
   };
@@ -60,7 +60,7 @@ const UserDetailPage = () => {
     }
 
     const whatsappURL = createWhatsAppURL(phoneNumber);
-    
+
     // Try to open in new tab/window
     window.open(whatsappURL, '_blank', 'noopener,noreferrer');
     e.preventDefault(); // Prevent default Link behavior
@@ -105,7 +105,7 @@ const UserDetailPage = () => {
                   </p>
                 </div>
               </div>
-             
+
               <div className="flex items-center gap-4 mt-2">
                 <div>
                   {data?.user?.phoneNumber ? (
@@ -177,6 +177,15 @@ const UserDetailPage = () => {
                 </p>
                 <p className="text-xl ">DOB: {data?.user?.DOB ? data.user.DOB.split("T")[0] : "Not available"}</p>
               </div>
+              <div className="flex gap-5 items-center">
+                <p>
+                  <IdCardLanyard className="w-4 h-4" />
+                </p>
+                <p className="text-xl ">
+                  Index File Number: {data?.user?.client?.indexFileNumber ?? "N/A"}
+                </p>
+              </div>
+
             </div>
           </CardContent>
         </Card>
