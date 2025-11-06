@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Users, Filter, X } from "lucide-react";
+import { Plus, Users, Filter, X, Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { createClientColumns } from "./clientColumns";
 import type { Client } from "../../lib/types";
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Input } from "../ui/input";
 import { useState, useEffect } from "react";
 import { clientService } from "../../api/clientService";
 
@@ -21,6 +22,10 @@ export default function ClientPage() {
   const currentPage = parseInt(searchParams.get("page") || "0");
   const navigate = useNavigate();
   const { mutate: deleteUser } = useDeleteUser();
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -50,8 +55,16 @@ export default function ClientPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingFilters, setIsLoadingFilters] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-
   const columns = createClientColumns(deleteUser, navigate);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Fetch filter options on component mount
   useEffect(() => {
@@ -70,7 +83,7 @@ export default function ClientPage() {
     fetchFilterOptions();
   }, []);
 
-  // Fetch clients based on filters and pagination
+  // Fetch clients based on filters, search, and pagination
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -87,11 +100,12 @@ export default function ClientPage() {
             ...filters,
             page: currentPage,
             limit: 5,
+            search: debouncedSearch,
           };
           response = await clientService.filterClients(filterParams);
         } else {
           // Use regular endpoint if no filters
-          response = await clientService.getClients(currentPage, 5);
+          response = await clientService.getClients(currentPage, 5, debouncedSearch);
         }
         
         setClients(response.clients || []);
@@ -105,11 +119,26 @@ export default function ClientPage() {
     };
 
     fetchClients();
-  }, [filters, currentPage]);
+  }, [filters, currentPage, debouncedSearch]);
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
     // Reset to first page when filters change
+    if (currentPage !== 0) {
+      navigate("?page=0");
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    // Reset to first page when search changes
+    if (currentPage !== 0) {
+      navigate("?page=0");
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
     if (currentPage !== 0) {
       navigate("?page=0");
     }
@@ -129,10 +158,11 @@ export default function ClientPage() {
             ...filters,
             page: currentPage,
             limit: 5,
+            search: debouncedSearch,
           };
           response = await clientService.filterClients(filterParams);
         } else {
-          response = await clientService.getClients(currentPage, 5);
+          response = await clientService.getClients(currentPage, 5, debouncedSearch);
         }
         
         setClients(response.clients || []);
@@ -189,7 +219,7 @@ export default function ClientPage() {
 
       {/* Main content */}
       <div className="flex flex-col gap-4 px-5">
-        {isLoading ? (
+        {isLoading && pagination.totalClients === 0 ? (
           <div className="min-h-screen bg-gray-50">
             <div className="animate-pulse">
               <div className="h-8 bg-gray-200 rounded mb-4"></div>
@@ -214,37 +244,28 @@ export default function ClientPage() {
               </Button>
             </div>
           </div>
-        ) : pagination.totalClients === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Users className="h-12 w-12 text-gray-300" />
-              <div className="text-gray-500 text-lg font-medium">
-                No clients found
-              </div>
-              <div className="text-gray-400 text-sm max-w-md">
-                Get started by adding your first client to the system.
-              </div>
-              <div className="flex gap-2">
-                <Link to="/addclients">
-                  <Button className="gap-2 bg-[#210EAB] px-4 py-2 hover:bg-[#210EAB]/90 text-white">
-                    <Plus className="h-4 w-4" />
-                    Add Single Client
-                  </Button>
-                </Link>
-                <BulkClientUpload
-                  onSuccess={handleBulkUploadSuccess}
-                  trigger={
-                    <Button variant="outline" className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Add Bulk Clients
-                    </Button>
-                  }
-                />
-              </div>
-            </div>
-          </div>
         ) : (
           <>
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search by name, email, phone, or address..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10 pr-10 h-11"
+              />
+              {searchQuery && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
             {/* Filter Controls */}
             <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="flex items-center justify-between mb-4">
@@ -394,12 +415,49 @@ export default function ClientPage() {
               </div>
             </div>
 
-            <ClientDataTable<Client, unknown>
-              columns={columns}
-              data={clients || []}
-              totalPages={pagination.totalPages || 0}
-              totalItems={pagination.totalClients || 0}
-            />
+            {pagination.totalClients === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <Users className="h-12 w-12 text-gray-300" />
+                  <div className="text-gray-500 text-lg font-medium">
+                    {searchQuery || Object.values(filters).some(v => v)
+                      ? "No clients match your search"
+                      : "No clients found"}
+                  </div>
+                  <div className="text-gray-400 text-sm max-w-md">
+                    {searchQuery || Object.values(filters).some(v => v)
+                      ? "Try adjusting your search or filters"
+                      : "Get started by adding your first client to the system."}
+                  </div>
+                  {!searchQuery && !Object.values(filters).some(v => v) && (
+                    <div className="flex gap-2">
+                      <Link to="/addclients">
+                        <Button className="gap-2 bg-[#210EAB] px-4 py-2 hover:bg-[#210EAB]/90 text-white">
+                          <Plus className="h-4 w-4" />
+                          Add Single Client
+                        </Button>
+                      </Link>
+                      <BulkClientUpload
+                        onSuccess={handleBulkUploadSuccess}
+                        trigger={
+                          <Button variant="outline" className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Add Bulk Clients
+                          </Button>
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <ClientDataTable<Client, unknown>
+                columns={columns}
+                data={clients || []}
+                totalPages={pagination.totalPages || 0}
+                totalItems={pagination.totalClients || 0}
+              />
+            )}
           </>
         )}
       </div>

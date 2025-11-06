@@ -68,11 +68,11 @@ export const useClientMutations = () => {
   };
 };
 
-export const useGetClients = (page: number = 0, limit: number = 5) => {
+export const useGetClients = (page: number = 0, limit: number =5,search:string) => {
   const { data, isLoading, error, refetch } = useQuery<ClientsResponse, Error>({
     queryKey: ["clients", page, limit],
     queryFn: async () => {
-      const response = await clientService.getClients(page, limit);
+      const response = await clientService.getClients(page, limit,search);
       return response;
     },
   });

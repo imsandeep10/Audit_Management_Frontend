@@ -54,77 +54,77 @@ export const UploadClientBills = () => {
 
   const actualUserType = userType || user?.role || 'admin';
 
-  const convertDocumentsToFiles = (documents: any[]): FileWithPreview[] => {
-    return documents.map((doc) => {
-      // Create a simple object that implements the FileWithPreview interface
-      // This represents existing files already uploaded to the server
-      const mockFile: FileWithPreview & { isExisting?: boolean; documentId?: string } = {
-        id: doc._id || doc.id,
-        preview: doc.documentURL || `${process.env.REACT_APP_BACKEND_URL}/uploads/files/${doc.filename}`,
-        isExisting: true, // Flag to identify existing files
-        documentId: doc._id || doc.id,
-        size: doc.size || 0,
-        name: doc.originalName || doc.filename,
-        lastModified: Date.now(),
-        type: 'application/octet-stream',
-        webkitRelativePath: '',
-        // Mock File methods - these won't be called for existing files
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-        slice: () => new Blob(),
-        stream: () => new ReadableStream(),
-        text: () => Promise.resolve(''),
-        bytes: () => Promise.resolve(new Uint8Array(0)),
-      };
-
-      return mockFile;
-    });
-  };
+const convertDocumentsToFiles = (documents: any[]): FileWithPreview[] => {
+  return documents.map((doc) => {
+    const mockFile: FileWithPreview & { isExisting?: boolean; documentId?: string } = {
+      id: doc._id || doc.id,
+      preview: doc.documentURL || `${process.env.REACT_APP_BACKEND_URL}/uploads/files/${doc.filename}`,
+      isExisting: true,
+      documentId: doc._id || doc.id, // Store the document ID
+      size: doc.size || 0,
+      name: doc.originalName || doc.filename,
+      lastModified: Date.now(),
+      type: 'application/octet-stream',
+      webkitRelativePath: '',
+      arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+      slice: () => new Blob(),
+      stream: () => new ReadableStream(),
+      text: () => Promise.resolve(''),
+      bytes: () => Promise.resolve(new Uint8Array(0)),
+    };
+    return mockFile;
+  });
+};
 
   // Prepare default values based on update or create mode
-  const getDefaultValues = (): BillsFormData => {
-    if (isUpdate && billData) {
-      const defaultValues = {
-        sales: DEFAULT_SALES_VALUES,
-        purchase: DEFAULT_PURCHASE_VALUES,
-      };
-
-      // Populate the form fields for the bill being updated
-      if (billData.billType === 'sales') {
-        defaultValues.sales = {
-          documentType: billData.documentType,
-          customerName: billData.customerName,
-          billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
-          billNo: billData.billNo || '',
-          customerPan: billData.customerPan || '',
-          amount: billData.amount || 0,
-          phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
-          registrationType: billData.registrationType,
-          files: convertDocumentsToFiles(billData.documents || []),
-          documentIds: billData.documentIds || [],
-        };
-      } else if (billData.billType === 'purchase') {
-        defaultValues.purchase = {
-          documentType: billData.documentType,
-          customerName: billData.customerName,
-          billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
-          customerBillNo: billData.customerBillNo || '',
-          customerPan: billData.customerPan || '',
-          amount: billData.amount || 0,
-          phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
-          registrationType: billData.registrationType,
-          files: convertDocumentsToFiles(billData.documents || []),
-          documentIds: billData.documentIds || [],
-        };
-      }
-
-      return defaultValues;
-    }
-
-    return {
+const getDefaultValues = (): BillsFormData => {
+  if (isUpdate && billData) {
+    const defaultValues = {
       sales: DEFAULT_SALES_VALUES,
       purchase: DEFAULT_PURCHASE_VALUES,
     };
+
+    // Extract document IDs from documents
+    const existingDocumentIds = (billData.documents || []).map(
+      (doc: any) => doc._id || doc.id
+    );
+
+    if (billData.billType === 'sales') {
+      defaultValues.sales = {
+        documentType: billData.documentType,
+        customerName: billData.customerName,
+        billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
+        billNo: billData.billNo || '',
+        customerPan: billData.customerPan || '',
+        amount: billData.amount || 0,
+        phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
+        registrationType: billData.registrationType,
+        files: convertDocumentsToFiles(billData.documents || []),
+        documentIds: existingDocumentIds, // Set existing document IDs
+      };
+    } else if (billData.billType === 'purchase') {
+      defaultValues.purchase = {
+        documentType: billData.documentType,
+        customerName: billData.customerName,
+        billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
+        customerBillNo: billData.customerBillNo || '',
+        customerPan: billData.customerPan || '',
+        amount: billData.amount || 0,
+        phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
+        registrationType: billData.registrationType,
+        files: convertDocumentsToFiles(billData.documents || []),
+        documentIds: existingDocumentIds, // Set existing document IDs
+      };
+    }
+
+    return defaultValues;
+  }
+
+  return {
+    sales: DEFAULT_SALES_VALUES,
+    purchase: DEFAULT_PURCHASE_VALUES,
   };
+};
 
   // State
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
@@ -269,117 +269,145 @@ export const UploadClientBills = () => {
     billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber ? customer.phoneNumber.toString() : '');
   };
 
-  const handleBillsFilesChange =
-    (billType: BillType) =>
-      async (files: FileWithPreview[]): Promise<void> => {
-        billsForm.setValue(`${billType}.files`, files);
+const handleBillsFilesChange =
+  (billType: BillType) =>
+    async (files: FileWithPreview[]): Promise<void> => {
+      billsForm.setValue(`${billType}.files`, files);
 
-        if (files.length > 0) {
-          try {
+      if (files.length > 0) {
+        try {
+          // Separate existing files from new files
+          const existingFiles = files.filter((f: any) => f.isExisting);
+          const newFiles = files.filter((f: any) => !f.isExisting);
+
+          // Get existing document IDs
+          const existingDocumentIds = existingFiles.map((f: any) => f.documentId).filter(Boolean);
+
+          // Upload new files if any
+          let newDocumentIds: string[] = [];
+          if (newFiles.length > 0) {
             const documentType = billsForm.getValues(`${billType}.documentType`);
-            const documentIds = await uploadFilesMutation.mutateAsync({
-              files,
+            newDocumentIds = await uploadFilesMutation.mutateAsync({
+              files: newFiles,
               documentType: documentType as DocumentType,
               billType,
               clientId,
             });
-            billsForm.setValue(`${billType}.documentIds`, documentIds);
-          } catch (error) {
-            console.error("File upload failed:", error);
-            billsForm.setValue(`${billType}.files`, []);
-            billsForm.setValue(`${billType}.documentIds`, []);
           }
-        } else {
-          billsForm.setValue(`${billType}.documentIds`, []);
+
+          // Combine existing and new document IDs
+          const allDocumentIds = [...existingDocumentIds, ...newDocumentIds];
+          billsForm.setValue(`${billType}.documentIds`, allDocumentIds);
+        } catch (error) {
+          console.error("File upload failed:", error);
+          // Keep existing files on error
+          const existingFiles = files.filter((f: any) => f.isExisting);
+          const existingDocumentIds = existingFiles.map((f: any) => f.documentId).filter(Boolean);
+          billsForm.setValue(`${billType}.files`, existingFiles);
+          billsForm.setValue(`${billType}.documentIds`, existingDocumentIds);
         }
-      };
-
-  // Submit handlers
-  const handleSalesBillSubmit = async () => {
-    const isValid = await billsForm.trigger("sales");
-    if (isValid) {
-      const salesData = billsForm.getValues("sales");
-      const formBillData = {
-        documentType: salesData.documentType,
-        customerName: salesData.customerName,
-        billDate: salesData.billDate,
-        billNo: salesData.billNo,
-        customerPan: salesData.customerPan,
-        amount: salesData.amount,
-        phoneNumber: (salesData.phoneNumber && salesData.phoneNumber.trim() !== "") ? Number(salesData.phoneNumber) : undefined,
-        registrationType: salesData.registrationType,
-      };
-
-      if (isUpdate && billData) {
-        // Update existing bill
-        await updateBillMutation.mutateAsync({
-          billId: billData._id,
-          billData: formBillData,
-          documentIds: salesData.documentIds || [],
-          billType: "sales",
-        });
-        // Navigate back to document manager after successful update
-        navigate(`/clients/${clientId}/documents`, { 
-          state: { 
-            clientId, 
-            clientName, 
-            companyName 
-          } 
-        });
       } else {
-        // Create new bill
-        await createSalesBillMutation.mutateAsync({
-          billData: formBillData,
-          documentIds: salesData.documentIds || [],
-          billType: "sales",
-          clientId,
-        });
+        billsForm.setValue(`${billType}.documentIds`, []);
       }
-    }
-  };
+    };
+// Submit handlers - COMPLETE FIXED VERSION
+const handleSalesBillSubmit = async () => {
+  const isValid = await billsForm.trigger("sales");
+  if (isValid) {
+    const salesData = billsForm.getValues("sales");
+    const formBillData = {
+      documentType: salesData.documentType,
+      customerName: salesData.customerName,
+      billDate: salesData.billDate,
+      billNo: salesData.billNo,
+      customerPan: salesData.customerPan,
+      amount: salesData.amount,
+      phoneNumber: (salesData.phoneNumber && salesData.phoneNumber.trim() !== "") ? Number(salesData.phoneNumber) : undefined,
+      registrationType: salesData.registrationType,
+    };
 
-  const handlePurchaseBillSubmit = async () => {
-    const isValid = await billsForm.trigger("purchase");
-    if (isValid) {
-      const purchaseData = billsForm.getValues("purchase");
-      const formBillData = {
-        documentType: purchaseData.documentType,
-        customerName: purchaseData.customerName,
-        billDate: purchaseData.billDate,
-        customerBillNo: purchaseData.customerBillNo,
-        customerPan: purchaseData.customerPan,
-        amount: purchaseData.amount,
-        phoneNumber: (purchaseData.phoneNumber && purchaseData.phoneNumber.trim() !== "") ? Number(purchaseData.phoneNumber) : undefined,
-        registrationType: purchaseData.registrationType,
-      };
-
-      if (isUpdate && billData) {
-        // Update existing bill
-        await updateBillMutation.mutateAsync({
-          billId: billData._id,
-          billData: formBillData,
-          documentIds: purchaseData.documentIds || [],
-          billType: "purchase",
-        });
-        // Navigate back to document manager after successful update
-        navigate(`/clients/${clientId}/documents`, {
-          state: { 
-            clientId, 
-            clientName, 
-            companyName 
-          } 
-        });
-      } else {
-        // Create new bill
-        await createPurchaseBillMutation.mutateAsync({
-          billData: formBillData,
-          documentIds: purchaseData.documentIds || [],
-          billType: "purchase",
-          clientId,
-        });
+    // FIX: For updates, use existing documentIds if no new files were uploaded
+    let documentIdsToSend = salesData.documentIds || [];
+    
+    if (isUpdate && billData) {
+      // If no new documents were uploaded, use the existing ones
+      if (documentIdsToSend.length === 0) {
+        documentIdsToSend = billData.documentIds || [];
       }
+      
+      await updateBillMutation.mutateAsync({
+        billId: billData._id,
+        billData: formBillData,
+        documentIds: documentIdsToSend,
+        billType: "sales",
+      });
+      
+      navigate(`/clients/${clientId}/documents`, { 
+        state: { 
+          clientId, 
+          clientName, 
+          companyName 
+        } 
+      });
+    } else {
+      await createSalesBillMutation.mutateAsync({
+        billData: formBillData,
+        documentIds: documentIdsToSend,
+        billType: "sales",
+        clientId,
+      });
     }
-  };
+  }
+};
+
+const handlePurchaseBillSubmit = async () => {
+  const isValid = await billsForm.trigger("purchase");
+  if (isValid) {
+    const purchaseData = billsForm.getValues("purchase");
+    const formBillData = {
+      documentType: purchaseData.documentType,
+      customerName: purchaseData.customerName,
+      billDate: purchaseData.billDate,
+      customerBillNo: purchaseData.customerBillNo,
+      customerPan: purchaseData.customerPan,
+      amount: purchaseData.amount,
+      phoneNumber: (purchaseData.phoneNumber && purchaseData.phoneNumber.trim() !== "") ? Number(purchaseData.phoneNumber) : undefined,
+      registrationType: purchaseData.registrationType,
+    };
+
+    // FIX: For updates, use existing documentIds if no new files were uploaded
+    let documentIdsToSend = purchaseData.documentIds || [];
+    
+    if (isUpdate && billData) {
+      // If no new documents were uploaded, use the existing ones
+      if (documentIdsToSend.length === 0) {
+        documentIdsToSend = billData.documentIds || [];
+      }
+      
+      await updateBillMutation.mutateAsync({
+        billId: billData._id,
+        billData: formBillData,
+        documentIds: documentIdsToSend,
+        billType: "purchase",
+      });
+      
+      navigate(`/clients/${clientId}/documents`, {
+        state: { 
+          clientId, 
+          clientName, 
+          companyName 
+        } 
+      });
+    } else {
+      await createPurchaseBillMutation.mutateAsync({
+        billData: formBillData,
+        documentIds: documentIdsToSend,
+        billType: "purchase",
+        clientId,
+      });
+    }
+  }
+};
 
   return (
     <div

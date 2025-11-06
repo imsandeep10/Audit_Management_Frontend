@@ -30,9 +30,9 @@ export const clientService = {
     }
   },
 
-  async getClients(page: number = 0, limit: number = 5) {
+  async getClients(page: number = 0, limit: number = 5,search:string) {
     const response = await axiosInstance.get("/client/get-clients", {
-      params: { page, limit },
+      params: { page, limit,search },
     });
     return response.data;
   },
