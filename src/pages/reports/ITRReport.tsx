@@ -138,57 +138,59 @@ export default function ITRReport() {
             </Card>
           </div>
 
-          {/* Data Table */}
+         {/* Data Table */}
           <Card>
             <CardHeader>
               <CardTitle>ITR Tasks Details</CardTitle>
             </CardHeader>
             <CardContent>
               {reportData.data.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Task Title</TableHead>
-                      <TableHead>Company Name</TableHead>
-                      <TableHead>Client Name</TableHead>
-                      <TableHead className="text-right">Taxable Amount</TableHead>
-                      <TableHead className="text-right">Tax Amount</TableHead>
-                      <TableHead className="text-right">Total Turnover</TableHead>
-                      <TableHead>Completed Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {reportData.data.map((task) => (
-                      <TableRow key={task._id}>
-                        <TableCell className="font-medium">
-                          <div>
-                            <div className="font-semibold">{task.taskTitle}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{task.companyName}</TableCell>
-                        
-                        <TableCell>{task.clientName}</TableCell>
-                        <TableCell className="text-right font-mono">
-                          रु {formatAmount(task.taxableAmount)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          रु {formatAmount(task.taxAmount)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          रु {formatAmount(task.taskAmount)}
-                        </TableCell>
-                        <TableCell>{formatDate(task.completedDate)}</TableCell>
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                      <TableRow>
+                        <TableHead>Task Title</TableHead>
+                        <TableHead>Company Name</TableHead>
+                        <TableHead>Client Name</TableHead>
+                        <TableHead className="text-right">Taxable Amount</TableHead>
+                        <TableHead className="text-right">Tax Amount</TableHead>
+                        <TableHead className="text-right">Total Turnover</TableHead>
+                        <TableHead>Completed Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {reportData.data.map((task) => (
+                        <TableRow key={task._id}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <div className="font-semibold">{task.taskTitle}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{task.companyName}</TableCell>
+                          
+                          <TableCell>{task.clientName}</TableCell>
+                          <TableCell className="text-right font-mono">
+                            रु {formatAmount(task.taxableAmount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            रु {formatAmount(task.taxAmount)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            रु {formatAmount(task.taskAmount)}
+                          </TableCell>
+                          <TableCell>{formatDate(task.completedDate)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   No ITR tasks found for the selected fiscal year.
                 </div>
               )}
             </CardContent>
-          </Card>   
+          </Card> 
         </>
       ) : (
         <div className="text-center py-8 text-muted-foreground">

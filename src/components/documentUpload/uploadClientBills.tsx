@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -60,7 +59,7 @@ const convertDocumentsToFiles = (documents: any[]): FileWithPreview[] => {
       id: doc._id || doc.id,
       preview: doc.documentURL || `${process.env.REACT_APP_BACKEND_URL}/uploads/files/${doc.filename}`,
       isExisting: true,
-      documentId: doc._id || doc.id, // Store the document ID
+      documentId: doc._id || doc.id,
       size: doc.size || 0,
       name: doc.originalName || doc.filename,
       lastModified: Date.now(),
@@ -76,57 +75,54 @@ const convertDocumentsToFiles = (documents: any[]): FileWithPreview[] => {
   });
 };
 
-  // Prepare default values based on update or create mode
-const getDefaultValues = (): BillsFormData => {
-  if (isUpdate && billData) {
-    const defaultValues = {
+  const getDefaultValues = (): BillsFormData => {
+    if (isUpdate && billData) {
+      const defaultValues = {
+        sales: DEFAULT_SALES_VALUES,
+        purchase: DEFAULT_PURCHASE_VALUES,
+      };
+
+      const existingDocumentIds = (billData.documents || []).map(
+        (doc: any) => doc._id || doc.id
+      );
+
+      if (billData.billType === 'sales') {
+        defaultValues.sales = {
+          documentType: billData.documentType,
+          customerName: billData.customerName,
+          billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
+          billNo: billData.billNo || '',
+          customerPan: billData.customerPan || '',
+          amount: billData.amount || 0,
+          phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
+          registrationType: billData.registrationType,
+          files: convertDocumentsToFiles(billData.documents || []),
+          documentIds: existingDocumentIds,
+        };
+      } else if (billData.billType === 'purchase') {
+        defaultValues.purchase = {
+          documentType: billData.documentType,
+          customerName: billData.customerName,
+          billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
+          customerBillNo: billData.customerBillNo || '',
+          customerPan: billData.customerPan || '',
+          amount: billData.amount || 0,
+          phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
+          registrationType: billData.registrationType,
+          files: convertDocumentsToFiles(billData.documents || []),
+          documentIds: existingDocumentIds,
+        };
+      }
+
+      return defaultValues;
+    }
+
+    return {
       sales: DEFAULT_SALES_VALUES,
       purchase: DEFAULT_PURCHASE_VALUES,
     };
-
-    // Extract document IDs from documents
-    const existingDocumentIds = (billData.documents || []).map(
-      (doc: any) => doc._id || doc.id
-    );
-
-    if (billData.billType === 'sales') {
-      defaultValues.sales = {
-        documentType: billData.documentType,
-        customerName: billData.customerName,
-        billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
-        billNo: billData.billNo || '',
-        customerPan: billData.customerPan || '',
-        amount: billData.amount || 0,
-        phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
-        registrationType: billData.registrationType,
-        files: convertDocumentsToFiles(billData.documents || []),
-        documentIds: existingDocumentIds, // Set existing document IDs
-      };
-    } else if (billData.billType === 'purchase') {
-      defaultValues.purchase = {
-        documentType: billData.documentType,
-        customerName: billData.customerName,
-        billDate: billData.billDate ? new Date(billData.billDate).toISOString().split('T')[0] : '',
-        customerBillNo: billData.customerBillNo || '',
-        customerPan: billData.customerPan || '',
-        amount: billData.amount || 0,
-        phoneNumber: billData.phoneNumber ? billData.phoneNumber.toString() : '',
-        registrationType: billData.registrationType,
-        files: convertDocumentsToFiles(billData.documents || []),
-        documentIds: existingDocumentIds, // Set existing document IDs
-      };
-    }
-
-    return defaultValues;
-  }
-
-  return {
-    sales: DEFAULT_SALES_VALUES,
-    purchase: DEFAULT_PURCHASE_VALUES,
   };
-};
 
-  // State
   const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
   const [isUploading, setIsUploading] = useState<{
     sales: boolean;
@@ -136,14 +132,12 @@ const getDefaultValues = (): BillsFormData => {
     purchase: false,
   });
 
-  // Form
   const billsForm = useForm<BillsFormData>({
     resolver: zodResolver(billsSchema) as any,
     defaultValues: getDefaultValues(),
     mode: "onBlur",
   });
 
-  // Progress handlers
   const handleUploadStart = (billType: BillType) => {
     setIsUploading((prev) => ({ ...prev, [billType]: true }));
   };
@@ -170,25 +164,20 @@ const getDefaultValues = (): BillsFormData => {
     });
   };
 
-  // Amount input handler - updated to allow negative values
   const handleAmountInput = (e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
     let value = target.value;
     
-    // Allow negative sign only at the beginning
     const hasNegativeSign = value.startsWith('-');
     
-    // Remove any non-numeric characters except decimal point and negative sign
     value = value.replace(/[^0-9.-]/g, "");
     
-    // Ensure negative sign is only at the beginning
     if (hasNegativeSign && !value.startsWith('-')) {
       value = '-' + value.replace(/-/g, '');
     } else if (!hasNegativeSign) {
       value = value.replace(/-/g, '');
     }
     
-    // Handle multiple decimal points - keep only the first one
     const decimalIndex = value.indexOf(".");
     if (decimalIndex !== -1) {
       const beforeDecimal = value.substring(0, decimalIndex);
@@ -196,37 +185,30 @@ const getDefaultValues = (): BillsFormData => {
       value = beforeDecimal + "." + afterDecimal;
     }
     
-    // Limit to 2 decimal places
     const parts = value.split(".");
     if (parts[1] && parts[1].length > 2) {
       value = parts[0] + "." + parts[1].substring(0, 2);
     }
     
-    // Handle edge case where user types just "-" or "-."
     if (value === '-' || value === '-.') {
-      // Allow these intermediate states during typing
+      // Allow intermediate states
     } else if (value !== '' && isNaN(parseFloat(value))) {
-      // If it's not a valid number and not an intermediate state, clear it
       value = '';
     }
     
     target.value = value;
   };
 
-  // Phone number input handler
   const handlePhoneInput = (e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
-    // Allow only numbers
     target.value = target.value.replace(/[^0-9]/g, "");
   };
 
-  // PAN input handler
   const handlePANInput = (e: React.FormEvent<HTMLInputElement>) => {
     const target = e.target as HTMLInputElement;
     target.value = target.value.replace(VALIDATION_PATTERNS.NUMBERS_ONLY, "");
   };
 
-  // Hooks
   const uploadFilesMutation = useUploadFiles({
     onUploadStart: handleUploadStart,
     onUploadEnd: handleUploadEnd,
@@ -250,22 +232,13 @@ const getDefaultValues = (): BillsFormData => {
 
   const updateBillMutation = useUpdateBill();
 
-  // Customer suggestions hook
   const { data: customerSuggestions = [], isLoading: isLoadingCustomers } = useCustomerSuggestions(clientId);
 
-  // Auto-fill form when customer is selected
   const handleCustomerSelect = (billType: BillType) => (customer: CustomerSuggestion) => {
-    // Fill customer name and PAN
     billsForm.setValue(`${billType}.customerName`, customer.customerName);
     billsForm.setValue(`${billType}.customerPan`, customer.customerPan);
-
-    // Set document type to match the selected customer's preference
     billsForm.setValue(`${billType}.documentType`, customer.documentType);
-
-    // Set registration type to match the selected customer's preference
     billsForm.setValue(`${billType}.registrationType`, customer.registrationType);
-
-    // Set phone number if available (store as string in form)
     billsForm.setValue(`${billType}.phoneNumber`, customer.phoneNumber ? customer.phoneNumber.toString() : '');
   };
 
@@ -276,17 +249,15 @@ const handleBillsFilesChange =
 
       if (files.length > 0) {
         try {
-          // Separate existing files from new files
           const existingFiles = files.filter((f: any) => f.isExisting);
           const newFiles = files.filter((f: any) => !f.isExisting);
 
-          // Get existing document IDs
           const existingDocumentIds = existingFiles.map((f: any) => f.documentId).filter(Boolean);
 
-          // Upload new files if any
           let newDocumentIds: string[] = [];
           if (newFiles.length > 0) {
-            const documentType = billsForm.getValues(`${billType}.documentType`);
+            // FIX: Add null check for documentType
+            const documentType = billsForm.getValues(`${billType}.documentType`) || 'tax';
             newDocumentIds = await uploadFilesMutation.mutateAsync({
               files: newFiles,
               documentType: documentType as DocumentType,
@@ -295,12 +266,10 @@ const handleBillsFilesChange =
             });
           }
 
-          // Combine existing and new document IDs
           const allDocumentIds = [...existingDocumentIds, ...newDocumentIds];
           billsForm.setValue(`${billType}.documentIds`, allDocumentIds);
         } catch (error) {
           console.error("File upload failed:", error);
-          // Keep existing files on error
           const existingFiles = files.filter((f: any) => f.isExisting);
           const existingDocumentIds = existingFiles.map((f: any) => f.documentId).filter(Boolean);
           billsForm.setValue(`${billType}.files`, existingFiles);
@@ -310,7 +279,7 @@ const handleBillsFilesChange =
         billsForm.setValue(`${billType}.documentIds`, []);
       }
     };
-// Submit handlers - COMPLETE FIXED VERSION
+
 const handleSalesBillSubmit = async () => {
   const isValid = await billsForm.trigger("sales");
   if (isValid) {
@@ -326,11 +295,9 @@ const handleSalesBillSubmit = async () => {
       registrationType: salesData.registrationType,
     };
 
-    // FIX: For updates, use existing documentIds if no new files were uploaded
     let documentIdsToSend = salesData.documentIds || [];
     
     if (isUpdate && billData) {
-      // If no new documents were uploaded, use the existing ones
       if (documentIdsToSend.length === 0) {
         documentIdsToSend = billData.documentIds || [];
       }
@@ -375,11 +342,9 @@ const handlePurchaseBillSubmit = async () => {
       registrationType: purchaseData.registrationType,
     };
 
-    // FIX: For updates, use existing documentIds if no new files were uploaded
     let documentIdsToSend = purchaseData.documentIds || [];
     
     if (isUpdate && billData) {
-      // If no new documents were uploaded, use the existing ones
       if (documentIdsToSend.length === 0) {
         documentIdsToSend = billData.documentIds || [];
       }
@@ -475,7 +440,6 @@ const handlePurchaseBillSubmit = async () => {
 
       <div className="space-y-6">
         <div className={`grid gap-6 ${isUpdate ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-          {/* Sales Section - Show if not updating or updating a sales bill */}
           {(!isUpdate || (isUpdate && billData?.billType === 'sales')) && (
             <div className="space-y-4 p-6 border-2 border-gray-200 rounded-lg bg-gray-50">
               <div className="flex justify-between items-center">
@@ -489,7 +453,6 @@ const handlePurchaseBillSubmit = async () => {
                 </h3>
             </div>
 
-            {/* Document Type */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Document Type <span className="text-red-500">*</span>
@@ -516,7 +479,6 @@ const handlePurchaseBillSubmit = async () => {
               </Select>
             </div>
 
-            {/* Customer Name */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Customer Name <span className="text-red-500">*</span>
@@ -533,7 +495,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Bill Date */}
             <div className="space-y-2">
               <DatePicker
                 label="Bill Date"
@@ -550,7 +511,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Bill Number */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Bill Number <span className="text-red-500">*</span>
@@ -567,7 +527,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Customer PAN */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Customer PAN Number <span className="text-red-500">*</span>
@@ -592,7 +551,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Amount - FIXED */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Amount <span className="text-red-500">*</span>
@@ -618,7 +576,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Phone Number (Optional) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Phone Number (optional)
@@ -637,7 +594,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Customer Registration Type */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Customer Registration Type <span className="text-red-500">*</span>
@@ -663,10 +619,9 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* File Upload */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Upload {billsForm.watch("sales.documentType").toUpperCase()}{" "}
+                Upload {billsForm.watch("sales.documentType")?.toUpperCase() || "TAX"}{" "}
                 Documents <span className="text-red-500">*</span>
               </label>
               <FileUploadField
@@ -678,7 +633,6 @@ const handlePurchaseBillSubmit = async () => {
               />
             </div>
 
-            {/* Sales Bill Button */}
             <div className="pt-4 border-t border-gray-200">
               <Button
                 type="button"
@@ -687,7 +641,6 @@ const handlePurchaseBillSubmit = async () => {
                 disabled={
                   (isUpdate ? updateBillMutation.isPending : createSalesBillMutation.isPending) ||
                   isUploading.sales
-                  // File upload is now optional, so do not disable if no files
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
@@ -699,7 +652,6 @@ const handlePurchaseBillSubmit = async () => {
           </div>
           )}
 
-          {/* Purchase Section - Show if not updating or updating a purchase bill */}
           {(!isUpdate || (isUpdate && billData?.billType === 'purchase')) && (
           <div className="space-y-4 p-6 border-2 border-gray-200 rounded-lg bg-gray-50">
             <div className="flex justify-between items-center">
@@ -713,7 +665,6 @@ const handlePurchaseBillSubmit = async () => {
               </h3>
             </div>
 
-            {/* Document Type */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Document Type <span className="text-red-500">*</span>
@@ -740,7 +691,6 @@ const handlePurchaseBillSubmit = async () => {
               </Select>
             </div>
 
-            {/* Vendor Name */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Vendor<span className="text-red-500">*</span>
@@ -757,7 +707,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Bill Date */}
             <div className="space-y-2">
               <DatePicker
                 label="Bill Date"
@@ -776,7 +725,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Customer Bill Number */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Supplier Bill Number <span className="text-red-500">*</span>
@@ -793,7 +741,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Supplier PAN */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Supplier PAN Number <span className="text-red-500">*</span>
@@ -818,7 +765,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Amount - FIXED */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Amount <span className="text-red-500">*</span>
@@ -844,7 +790,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Supplier Phone Number (Optional) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Phone Number (optional)
@@ -863,7 +808,6 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* Supplier Registration Type */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Supplier Registration Type <span className="text-red-500">*</span>
@@ -889,10 +833,9 @@ const handlePurchaseBillSubmit = async () => {
               )}
             </div>
 
-            {/* File Upload */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
-                Upload {billsForm.watch("purchase.documentType").toUpperCase()}{" "}
+                Upload {billsForm.watch("purchase.documentType")?.toUpperCase() || "TAX"}{" "}
                 Documents <span className="text-red-500">*</span>
               </label>
               <FileUploadField
@@ -904,7 +847,6 @@ const handlePurchaseBillSubmit = async () => {
               />
             </div>
 
-            {/* Purchase Bill Button */}
             <div className="pt-4 border-t border-gray-200">
               <Button
                 type="button"
@@ -927,7 +869,6 @@ const handlePurchaseBillSubmit = async () => {
         </div>
       </div>
 
-      {/* Display upload progress */}
       {Object.keys(uploadProgress).length > 0 && (
         <div className="mt-6 space-y-3">
           <h3 className="font-medium">Upload Progress</h3>
