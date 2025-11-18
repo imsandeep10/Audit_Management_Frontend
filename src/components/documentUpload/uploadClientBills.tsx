@@ -256,11 +256,15 @@ const handleBillsFilesChange =
 
           let newDocumentIds: string[] = [];
           if (newFiles.length > 0) {
-            // FIX: Add null check for documentType
-            const documentType = billsForm.getValues(`${billType}.documentType`) || 'tax';
+            // FIX: Add null check and provide default value
+            const documentType = billsForm.getValues(`${billType}.documentType`);
+            
+            // If documentType is null or undefined, default to 'tax'
+            const safeDocumentType = documentType || 'tax';
+            
             newDocumentIds = await uploadFilesMutation.mutateAsync({
               files: newFiles,
-              documentType: documentType as DocumentType,
+              documentType: safeDocumentType as DocumentType,
               billType,
               clientId,
             });
