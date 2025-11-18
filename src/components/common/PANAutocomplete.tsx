@@ -35,16 +35,30 @@ export const PANAutocomplete: React.FC<PANAutocompleteProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Safe string conversion function
+  const safeToString = (str: any): string => {
+    if (str === null || str === undefined) return '';
+    return String(str);
+  };
+
+  // Safe lowercase conversion
+  const safeToLowerCase = (str: any): string => {
+    return safeToString(str).toLowerCase();
+  };
+
   useEffect(() => {
     if (value && value.length > 0) {
-      const filtered = suggestions.filter((suggestion) =>
-        suggestion.customerPan.toLowerCase().includes(value.toLowerCase()) ||
-        suggestion.customerName.toLowerCase().includes(value.toLowerCase())
-      );
+      const filtered = suggestions.filter((suggestion) => {
+        const customerPan = safeToLowerCase(suggestion?.customerPan);
+        const customerName = safeToLowerCase(suggestion?.customerName);
+        const searchValue = safeToLowerCase(value);
+        
+        return customerPan.includes(searchValue) || customerName.includes(searchValue);
+      });
       setFilteredSuggestions(filtered);
       setIsOpen(filtered.length > 0);
     } else {
-      setFilteredSuggestions(suggestions);
+      setFilteredSuggestions(suggestions || []);
       setIsOpen(false);
     }
     setHighlightedIndex(-1);
@@ -72,14 +86,14 @@ export const PANAutocomplete: React.FC<PANAutocompleteProps> = ({
   };
 
   const handleInputFocus = () => {
-    if (suggestions.length > 0) {
+    if (suggestions && suggestions.length > 0) {
       setFilteredSuggestions(suggestions);
       setIsOpen(true);
     }
   };
 
   const handleSuggestionClick = (suggestion: CustomerSuggestion) => {
-    onChange(suggestion.customerPan);
+    onChange(suggestion.customerPan || '');
     onCustomerSelect(suggestion);
     setIsOpen(false);
     setHighlightedIndex(-1);
@@ -112,12 +126,17 @@ export const PANAutocomplete: React.FC<PANAutocompleteProps> = ({
     }
   };
 
+  // Safe function to get document type
+  const getDocumentType = (suggestion: CustomerSuggestion): string => {
+    return suggestion?.documentType ? suggestion.documentType.toUpperCase() : 'TAX';
+  };
+
   return (
     <div className="relative">
       <Input
         ref={inputRef}
         name={name}
-        value={value}
+        value={value || ''}
         onChange={handleInputChange}
         onFocus={handleInputFocus}
         onKeyDown={handleKeyDown}
@@ -153,14 +172,16 @@ export const PANAutocomplete: React.FC<PANAutocompleteProps> = ({
                   onMouseEnter={() => setHighlightedIndex(index)}
                 >
                   <div className="flex flex-col">
-                    <div className="font-medium text-sm">{suggestion.customerName}</div>
+                    <div className="font-medium text-sm">
+                      {suggestion?.customerName || 'Unknown Customer'}
+                    </div>
                     <div className="text-xs text-gray-500 flex items-center gap-2">
-                      <span>PAN: {suggestion.customerPan}</span>
+                      <span>PAN: {suggestion?.customerPan || 'N/A'}</span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {suggestion.billType}
+                        {suggestion?.billType || 'unknown'}
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        {suggestion.documentType.toUpperCase()}
+                        {getDocumentType(suggestion)}
                       </span>
                     </div>
                   </div>
